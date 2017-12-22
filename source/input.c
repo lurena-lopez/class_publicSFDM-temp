@@ -227,7 +227,7 @@ int input_init(
    *
    * These two arrays must contain the strings of names to be searched
    *  for and the corresponding new parameter */
-  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
+  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr","Omega_sfdm",
                                        "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
                                         "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
@@ -518,6 +518,7 @@ int input_read_parameters(
   double param1,param2,param3;
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
+  double theta_sfdm, alpha_sfdm, aosc;
   double scf_lambda;
   double fnu_factor;
   double * pointer1;
@@ -758,6 +759,84 @@ int input_read_parameters(
     pba->Omega0_cdm = param2/pba->h/pba->h;
 
   Omega_tot += pba->Omega0_cdm;
+    
+  /** - Omega_0_sfdm (SFCDM) */
+  class_call(parser_read_double(pfc,"Omega_sfdm",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  class_call(parser_read_double(pfc,"omega_sfdm",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "In input file, you can only enter one of Omega_sfdm or omega_sfdm, choose one");
+  if (flag1 == _TRUE_)
+    pba->Omega0_sfdm = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_sfdm = param2/pba->h/pba->h;
+    
+  Omega_tot += pba->Omega0_sfdm;
+    
+    /* Additional SFDM parameters: */
+    if (pba->Omega0_sfdm != 0.){
+        /** - Read parameters describing scalar field potential */
+        class_call(parser_read_list_of_doubles(pfc,
+                                               "sfdm_parameters",
+                                               &(pba->sfdm_parameters_size),
+                                               &(pba->sfdm_parameters),
+                                               &flag1,
+                                               errmsg),
+                   errmsg,errmsg);
+        class_read_int("sfdm_tuning_index",pba->sfdm_tuning_index);
+        class_test(pba->sfdm_tuning_index >= pba->sfdm_parameters_size,
+                   errmsg,
+                   "Tuning index sfdm_tuning_index = %d is larger than the number of entries %d in sfdm_parameters. Check your .ini file.",pba->sfdm_tuning_index,pba->sfdm_parameters_size);
+        /** - Assign shooting parameter */
+        class_read_double("sfdm_shooting_parameter",pba->sfdm_parameters[pba->sfdm_tuning_index]);
+        
+        /** - Initial conditions for scalar field dark matter variables */
+        /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
+        /** - The mass parameter is m = sfdm_parameters[0] */
+        pba->y1_ini_sfdm = 2.*15.64*pba->sfdm_parameters[0]/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+        
+        /** - Read if the user wants to use the attractor trajectory */
+        class_call(parser_read_string(pfc,
+                                      "attractor_ic_sfdm",
+                                      &string1,
+                                      &flag1,
+                                      errmsg),
+                   errmsg,
+                   errmsg);
+        
+        if (flag1 == _TRUE_){
+            if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+                pba->attractor_ic_sfdm = _TRUE_;
+                /** - Use the attractor trajectory for the inital value of the angular variable */
+                theta_sfdm = 0.4*15.64*pba->sfdm_parameters[0]/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+                /** - Find the scale factor at the start of field oscillations */
+                aosc = pow((0.5*_PI_/theta_sfdm)/pow(1.+pow(_PI_,2)/36.,0.5),0.5);
+                /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */
+                alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+0.5*log(pba->Omega0_sfdm*1.e-14/(pow(aosc,3.)*(pba->Omega0_g+pba->Omega0_ur)));
+                /** - Set up initial conditions */
+                pba->theta_ini_sfdm = theta_sfdm;
+                pba->alpha_ini_sfdm = alpha_sfdm;
+            }
+            else{
+                pba->attractor_ic_sfdm = _FALSE_;
+                class_test(pba->scf_parameters_size<2,
+                           errmsg,
+                           "Since you are not using the attractor initial conditions,you must specify theta and Omega_sfdm as the last two entries in sfdm_parameters. See explanatory.ini for more details.");
+                /** - Set up initial conditions */
+                pba->theta_ini_sfdm = pba->sfdm_parameters[pba->sfdm_parameters_size-2];
+                pba->alpha_ini_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+0.5*log(pba->sfdm_parameters[pba->sfdm_parameters_size-1]);
+            }
+        }
+        
+        //sfdm_lambda = pba->sfdm_parameters[0];
+        //if ((fabs(sfdm_lambda) <3.)&&(pba->background_verbose>1))
+        //printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",sfdm_lambda);
+    }
+
 
   /** - Omega_0_dcdmdr (DCDM) */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
@@ -2891,7 +2970,16 @@ int input_default_params(
   pba->deg_ncdm = NULL;
   pba->ncdm_psd_parameters = NULL;
   pba->ncdm_psd_files = NULL;
-
+    
+  pba->Omega0_sfdm = 0.; /* Scalar field dark matter defaults */
+  pba->attractor_ic_sfdm = _TRUE_;
+  pba->sfdm_parameters = NULL;
+  pba->sfdm_parameters_size = 0;
+  pba->sfdm_tuning_index = 2;
+  pba->theta_ini_sfdm = 0.;
+  pba->y1_ini_sfdm = 0.;
+  pba->alpha_ini_sfdm = 0.;
+  
   pba->Omega0_scf = 0.; /* Scalar field defaults */
   pba->attractor_ic_scf = _TRUE_;
   pba->scf_parameters = NULL;
@@ -3708,6 +3796,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
         rho_dr_today = 0.;
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i]/ba.h/ba.h;
       break;
+    case Omega_sfdm:
+      output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_sfdm]/(ba.H0*ba.H0)
+        -ba.Omega0_sfdm;
+        break;
     case Omega_scf:
       /** - In case scalar field is used to fill, pba->Omega0_scf is not equal to pfzw->target_value[i].*/
       output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_scf]/(ba.H0*ba.H0)
@@ -3848,6 +3940,11 @@ int input_get_guess(double *xguess,
       xguess[index_guess] = pfzw->target_value[index_guess]/ba.h/ba.h/a_decay;
       dxdy[index_guess] = 1./a_decay/ba.h/ba.h;
         //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      break;
+    case Omega_sfdm:
+      /* Default: take the passed value as xguess and set dxdy to 1. */
+      xguess[index_guess] = ba.sfdm_parameters[ba.sfdm_tuning_index];
+      dxdy[index_guess] = 1.;
       break;
     case Omega_scf:
 
@@ -4008,6 +4105,7 @@ int input_auxillary_target_conditions(struct file_content * pfc,
   switch (target_name){
   case Omega_dcdmdr:
   case omega_dcdmdr:
+  case Omega_sfdm:
   case Omega_scf:
   case Omega_ini_dcdm:
   case omega_ini_dcdm:

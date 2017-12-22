@@ -73,6 +73,16 @@ struct background
   double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$: decay constant for decaying cold dark matter */
 
   double Omega_ini_dcdm;    /**< \f$ \Omega_{ini,dcdm} \f$: rescaled initial value for dcdm density (see 1407.2418 for definitions) */
+    
+  double Omega0_sfdm;        /**< \f$ \Omega_{0 sfdm} \f$: scalar field dark matter */
+  short attractor_ic_sfdm;   /**< whether the scalar field dark matter has attractor initial conditions */
+  double theta_ini_sfdm;       /**< \f$ \theta_sfdm(t_0) \f$: scalar field initial angular value */
+  double y1_ini_sfdm;       /**< \f$ y1_sfdm(t_0) \f$: scalar field initial potential value */
+  double alpha_ini_sfdm;       /**< \f$ alpha_sfdm(t_0) \f$: scalar field initial 0.5*log(Omega_ini) value */
+  double Omega_ini_sfdm; /**< \f$ Omega_sfdm(t_0) \f$: scalar field initial density parameter */
+  double * sfdm_parameters;  /**< list of parameters describing the scalar field dark matter potential */
+  int sfdm_parameters_size;  /**< size of sfdm_parameters */
+  int sfdm_tuning_index;     /**< index in sfdm_parameters used for tuning */
 
   double Omega0_scf;        /**< \f$ \Omega_{0 scf} \f$: scalar field */
   short attractor_ic_scf;   /**< whether the scalar field has attractor initial conditions */
@@ -167,6 +177,13 @@ struct background
   int index_bg_rho_dcdm;      /**< dcdm density */
   int index_bg_rho_dr;        /**< dr density */
 
+  int index_bg_theta_sfdm;       /**< scalar field dark matter angular variable */
+  int index_bg_y1_sfdm; /**< scalar field dark matter potential variable */
+  int index_bg_alpha_sfdm;         /**< scalar field dark matter 0.5*log(density parameter) */
+  int index_bg_rho_sfdm;       /**< scalar field dark matter energy density */
+  int index_bg_p_sfdm;         /**< scalar field dark matter pressure */
+  int index_bg_w_tot;         /**< total equation of state */
+    
   int index_bg_phi_scf;       /**< scalar field value */
   int index_bg_phi_prime_scf; /**< scalar field derivative wrt conformal time */
   int index_bg_V_scf;         /**< scalar field potential V */
@@ -238,6 +255,9 @@ struct background
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
   int index_bi_rho_fld; /**< {B} fluid density */
+  int index_bi_theta_sfdm;       /**< {B} scalar field dark matter angular variable */
+  int index_bi_y1_sfdm;       /**< {B} scalar field dark matter potential variable */
+  int index_bi_alpha_sfdm; /**< {B} scalar field dark matter 0.5*log(density parameter) */
   int index_bi_phi_scf;       /**< {B} scalar field value */
   int index_bi_phi_prime_scf; /**< {B} scalar field derivative wrt conformal time */
 
@@ -265,6 +285,7 @@ struct background
   short has_cdm;       /**< presence of cold dark matter? */
   short has_dcdm;      /**< presence of decaying cold dark matter? */
   short has_dr;        /**< presence of relativistic decay radiation? */
+  short has_sfdm;       /**< presence of scalar field dark matter? */
   short has_scf;       /**< presence of a scalar field? */
   short has_ncdm;      /**< presence of non-cold dark matter? */
   short has_lambda;    /**< presence of cosmological constant? */
@@ -482,6 +503,11 @@ extern "C" {
 			 void * parameters_and_workspace,
 			 ErrorMsg error_message
 			 );
+
+  /** Scalar field dark matter special functions. See background.c for more details. */
+  double cos_sfdm(struct background *pba, double theta_phi);
+    
+  double sin_sfdm(struct background *pba, double theta_phi);
 
   /** Scalar field potential and its derivatives **/
   double V_scf(

@@ -270,6 +270,8 @@ int background_functions(
   double w_fld, dw_over_da, integral_fld;
   /* scale factor */
   double a;
+  /* scalar field dark matter quantities */
+  double theta_sfdm, y1_sfdm, alpha_sfdm;
   /* scalar field quantities */
   double phi, phi_prime;
 
@@ -327,24 +329,6 @@ int background_functions(
     p_tot += (1./3.)*pvecback[pba->index_bg_rho_dr];
     rho_r += pvecback[pba->index_bg_rho_dr];
   }
-                             
-                             /* Scalar field dark matter */
-                             if (pba->has_sfdm == _TRUE_) {
-                                 theta_sfdm = pvecback_B[pba->index_bi_theta_sfdm];
-                                 y1_sfdm = pvecback_B[pba->index_bi_y1_sfdm];
-                                 alpha_sfdm = pvecback_B[pba->index_bi_alpha_sfdm];
-                                 pvecback[pba->index_bg_phi_scf] = theta_sfdm; // value of the angular variable
-                                 pvecback[pba->index_bg_phi_prime_scf] = y1_sfdm; // value of the potential variable
-                                 pvecback[pba->index_bg_V_scf] = alpha_sfdm; // value of 0.5*log(Omega_sfdm)
-                                 pvecback[pba->index_bg_rho_scf] = exp(2.*alpha_sfdm); // energy of the sfdm.
-                                 pvecback[pba->index_bg_p_scf] = exp(2.*alpha_sfdm)*cos_sfdm(theta_sfdm); // pressure of the sfdm
-                                 rho_tot += pvecback[pba->index_bg_rho_scf];
-                                 p_tot += pvecback[pba->index_bg_p_scf];
-                                 //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
-                                 // rho_r += 3.*pvecback[pba->index_bg_p_scf]; //field pressure contributes radiation
-                                 // rho_m += pvecback[pba->index_bg_rho_scf] - 3.* pvecback[pba->index_bg_p_scf]; //the rest contributes matter
-                                 //printf(" a= %e, Omega_scf = %f, \n ",a_rel, pvecback[pba->index_bg_rho_scf]/rho_tot );
-                             }
                              
   /* Scalar field */
   if (pba->has_scf == _TRUE_) {
@@ -436,6 +420,27 @@ int background_functions(
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
 
+  /* Scalar field dark matter. It should be the last density component to be computed! */
+  if (pba->has_sfdm == _TRUE_) {
+    theta_sfdm = pvecback_B[pba->index_bi_theta_sfdm];
+    y1_sfdm = pvecback_B[pba->index_bi_y1_sfdm];
+    alpha_sfdm = pvecback_B[pba->index_bi_alpha_sfdm];
+    pvecback[pba->index_bg_theta_sfdm] = theta_sfdm; // value of the angular variable
+    pvecback[pba->index_bg_y1_sfdm] = y1_sfdm; // value of the potential variable
+    pvecback[pba->index_bg_alpha_sfdm] = alpha_sfdm; // value of 0.5*log(Omega_sfdm)
+    pvecback[pba->index_bg_rho_sfdm] = exp(2.*alpha_sfdm)*rho_tot/(1.-exp(2.*alpha_sfdm)); // energy of the sfdm.
+    pvecback[pba->index_bg_p_sfdm] = -cos_sfdm(pba,theta_sfdm)*pvecback[pba->index_bg_rho_sfdm]; // pressure of the sfdm
+    rho_tot += pvecback[pba->index_bg_rho_sfdm];
+    p_tot += pvecback[pba->index_bg_p_sfdm];
+                                 //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
+                                 // rho_r += 3.*pvecback[pba->index_bg_p_scf]; //field pressure contributes radiation
+                                 // rho_m += pvecback[pba->index_bg_rho_scf] - 3.* pvecback[pba->index_bg_p_scf]; //the rest contributes matter
+                                 //printf(" a= %e, Omega_scf = %f, \n ",a_rel, pvecback[pba->index_bg_rho_scf]/rho_tot );
+  }
+                             
+    /** - compute the total EoS: w_tot */
+    pvecback[pba->index_bg_w_tot] = p_tot/rho_tot;
+                             
   /** - compute expansion rate H from Friedmann equation: this is the
       only place where the Friedmann equation is assumed. Remember
       that densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
@@ -748,6 +753,11 @@ int background_free_input(
       free(pba->ncdm_psd_parameters);
   }
 
+    if (pba->Omega0_sfdm != 0.){
+        if (pba->sfdm_parameters != NULL)
+        free(pba->sfdm_parameters);
+    }
+    
   if (pba->Omega0_scf != 0.){
     if (pba->scf_parameters != NULL)
       free(pba->scf_parameters);
@@ -828,6 +838,7 @@ int background_indices(
   /* - indices for H and its conformal-time-derivative */
   class_define_index(pba->index_bg_H,_TRUE_,index_bg,1);
   class_define_index(pba->index_bg_H_prime,_TRUE_,index_bg,1);
+  class_define_index(pba->index_bg_w_tot,_TRUE_,index_bg,1);
 
   /* - end of indices in the short vector of background values */
   pba->bg_size_short = index_bg;
@@ -856,10 +867,10 @@ int background_indices(
 
     /* - indices for scalar field dark matter */
     class_define_index(pba->index_bg_theta_sfdm,pba->has_sfdm,index_bg,1);
-    class_define_index(pba->index_bg_phi_y1_sfdm,pba->has_sfdm,index_bg,1);
+    class_define_index(pba->index_bg_y1_sfdm,pba->has_sfdm,index_bg,1);
     class_define_index(pba->index_bg_alpha_sfdm,pba->has_sfdm,index_bg,1);
     class_define_index(pba->index_bg_rho_sfdm,pba->has_sfdm,index_bg,1);
-    class_define_index(pba->index_bg_p_scf,pba->has_sfdm,index_bg,1);
+    class_define_index(pba->index_bg_p_sfdm,pba->has_sfdm,index_bg,1);
     
   /* - indices for scalar field */
   class_define_index(pba->index_bg_phi_scf,pba->has_scf,index_bg,1);
@@ -943,6 +954,11 @@ int background_indices(
 
   /* -> energy density in fluid */
   class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
+    
+    /* -> scalar field dark matter quantities */
+    class_define_index(pba->index_bi_theta_sfdm,pba->has_sfdm,index_bi,1);
+    class_define_index(pba->index_bi_y1_sfdm,pba->has_sfdm,index_bi,1);
+    class_define_index(pba->index_bi_alpha_sfdm,pba->has_sfdm,index_bi,1);
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
   class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
@@ -1798,16 +1814,14 @@ int background_solve(
              pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
       printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
+    
     if (pba->has_sfdm == _TRUE_){
           printf("    Scalar field details:\n");
           printf("     -> Omega_sfdm = %g, wished %g\n",
                  exp(2.*pvecback[pba->index_bg_alpha_sfdm]), pba->Omega0_sfdm);
-          //printf("     -> parameters: [lambda, alpha, A, B] = \n");
-          //printf("                    [");
-          /** for (i=0; i<pba->scf_parameters_size-1; i++){
-              printf("%.3f, ",pba->scf_parameters[i]);
-          }
-          printf("%.3f]\n",pba->scf_parameters[pba->scf_parameters_size-1]); */
+        printf(" -> Mass_sfdm = %5.4e [eV], %5.4e [1/Mpc], %5.4e [H_0]\n",
+               3.19696e-30*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]);
+        printf(" -> wished = %1.2e [eV]\n", pba->sfdm_parameters[0]);
       }
       
     if(pba->has_lambda == _TRUE_)
@@ -1971,31 +1985,17 @@ int background_initial_conditions(
                                       
     /** - Fix initial values of variables of sfdm */
   if(pba->has_sfdm == _TRUE_){
-    scf_lambda = pba->scf_parameters[0];
-    if(pba->attractor_ic_scf == _TRUE_){
-    pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
-    log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
-    if (3.*pow(scf_lambda,2)-12. < 0){
-    /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
-    pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
-    if (pba->background_verbose > 0)
-      printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
-      }
-      pvecback_integration[pba->index_bi_phi_prime_scf] = 2*pvecback_integration[pba->index_bi_a]*
-      sqrt(V_scf(pba,pvecback_integration[pba->index_bi_phi_scf]))*pba->phi_prime_ini_scf;
-    }
-    else{
-        printf("Not using attractor initial conditions\n");
-        /** - --> If no attractor initial conditions are assigned, gets the provided ones. */
-        pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
-        pvecback_integration[pba->index_bi_phi_prime_scf] = pba->phi_prime_ini_scf;
-    }
-    class_test(!isfinite(pvecback_integration[pba->index_bi_phi_scf]) ||
-    !isfinite(pvecback_integration[pba->index_bi_phi_scf]),
+    //sfdm_lambda = pba->sfdm_parameters[0];
+    pvecback_integration[pba->index_bi_theta_sfdm] = pba->theta_ini_sfdm;
+    pvecback_integration[pba->index_bi_y1_sfdm] = pba->y1_ini_sfdm;
+    pvecback_integration[pba->index_bi_alpha_sfdm] = pba->alpha_ini_sfdm;
+      
+    class_test(!isfinite(pvecback_integration[pba->index_bi_theta_sfdm]) ||
+    !isfinite(pvecback_integration[pba->index_bi_theta_sfdm]),
     pba->error_message,
-    "initial phi = %e phi_prime = %e -> check initial conditions",
-    pvecback_integration[pba->index_bi_phi_scf],
-    pvecback_integration[pba->index_bi_phi_scf]);
+    "initial theta_sfdm = %e alpha_sfdm = %e -> check initial conditions",
+    pvecback_integration[pba->index_bi_theta_sfdm],
+    pvecback_integration[pba->index_bi_alpha_sfdm]);
   }
 
   /** - Fix initial value of \f$ \phi, \phi' \f$
@@ -2285,15 +2285,14 @@ int background_derivs(
     dy[pba->index_bi_rho_fld] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*(1.+pvecback[pba->index_bg_w_fld])*y[pba->index_bi_rho_fld];
   }
     
-    if (pba->has_sfdm == _TRUE_){
-        /** - Scalar field dark matter EoM: \f$ \phi'' + 2 a H \phi' + a^2 dV = 0 \f$  (note H is wrt cosmic time) */
-        dy[pba->index_bi_theta_sfdm] = y[pba->index_bi_phi_prime_scf];
-        dy[pba->index_bi_y1_sfdm] = - y[pba->index_bi_a]*
-        (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
-         + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
-        dy[pba->index_bi_alpha_sfdm] = - y[pba->index_bi_a]*
-        (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
-         + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
+  if (pba->has_sfdm == _TRUE_){
+    /** - Scalar field dark matter EoM */
+    dy[pba->index_bi_alpha_sfdm] = 3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
+      (pvecback[pba->index_bg_w_tot]+cos_sfdm(pba,y[pba->index_bi_theta_sfdm]));
+    dy[pba->index_bi_theta_sfdm] = y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
+      (-3.*sin_sfdm(pba,y[pba->index_bi_theta_sfdm])+y[pba->index_bi_y1_sfdm]);
+    dy[pba->index_bi_y1_sfdm] = y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
+      (1.5*(1.+pvecback[pba->index_bg_w_tot])*y[pba->index_bi_y1_sfdm]);
     }
 
   if (pba->has_scf == _TRUE_){
@@ -2304,9 +2303,25 @@ int background_derivs(
        + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
   }
 
-
   return _SUCCESS_;
 
+}
+
+/** Cosine and sine modified functions to kill oscillations with a very high frequency */
+double cos_sfdm(struct background *pba,
+               double theta_sfdm
+               ) {
+    double theta_thresh = 1.e2;
+    double theta_tol = 1.;//1.e-2;
+    return 0.5*(1.-tanh(theta_tol*(theta_sfdm*theta_sfdm-theta_thresh*theta_thresh)))*cos(theta_sfdm);
+}
+
+double sin_sfdm(struct background *pba,
+               double theta_sfdm
+               ) {
+    double theta_thresh = 1.e2;
+    double theta_tol = 1.;//1.e-2;
+    return 0.5*(1.-tanh(theta_tol*(theta_sfdm*theta_sfdm-theta_thresh*theta_thresh)))*sin(theta_sfdm);
 }
 
 /**
