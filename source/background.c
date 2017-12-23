@@ -1803,9 +1803,9 @@ int background_solve(
   if (pba->background_verbose > 0) {
     printf(" -> age = %f Gyr\n",pba->age);
     printf(" -> conformal age = %f Mpc\n",pba->conformal_age);
-  }
+  //}
 
-  if (pba->background_verbose > 2) {
+  //if (pba->background_verbose > 0) {
     if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)){
       printf("    Decaying Cold Dark Matter details: (DCDM --> DR)\n");
       printf("     -> Omega0_dcdm = %f\n",pba->Omega0_dcdm);
@@ -1816,20 +1816,21 @@ int background_solve(
     }
     
     if (pba->has_sfdm == _TRUE_){
-          printf("    Scalar field details:\n");
-          printf("     -> Omega_sfdm = %g, wished %g\n",
+        printf("Scalar Field Dark Matter details:\n");
+        printf(" -> Omega_sfdm = %g, wished %g\n",
                  exp(2.*pvecback[pba->index_bg_alpha_sfdm]), pba->Omega0_sfdm);
-        printf(" -> Mass_sfdm = %5.4e [eV], %5.4e [1/Mpc], %5.4e [H_0]\n",
+        printf(" -> Mass_sfdm = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n",
                3.19696e-30*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]);
-        printf(" -> wished = %1.2e [eV]\n", pba->sfdm_parameters[0]);
+        printf("    -> wished = %1.2e [eV]\n", pba->sfdm_parameters[0]);
       }
       
     if(pba->has_lambda == _TRUE_)
-      printf("     -> Omega_Lambda = %g, wished %g\n",
+      printf("Lambda details:\n");
+      printf(" -> Omega_Lambda = %g, wished %g\n",
              pvecback[pba->index_bg_rho_lambda]/pvecback[pba->index_bg_rho_crit], pba->Omega0_lambda);
       
     if (pba->has_scf == _TRUE_){
-      printf("    Scalar field details:\n");
+      printf("Scalar field details:\n");
       printf("     -> Omega_scf = %g, wished %g\n",
              pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit], pba->Omega0_scf);
       if(pba->has_lambda == _TRUE_)
@@ -2113,11 +2114,11 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
   class_store_columntitle(titles,"(.)rho_dr",pba->has_dr);
     
-    class_store_columntitle(titles,"(.)rho_sfdm",pba->has_sfdm);
-    class_store_columntitle(titles,"(.)p_sfdm",pba->has_sfdm);
-    class_store_columntitle(titles,"theta_sfdm",pba->has_sfdm);
-    class_store_columntitle(titles,"y1_sfdm",pba->has_sfdm);
-    class_store_columntitle(titles,"alpha_sfdm",pba->has_sfdm);
+  class_store_columntitle(titles,"(.)rho_sfdm",pba->has_sfdm);
+  class_store_columntitle(titles,"(.)p_sfdm",pba->has_sfdm);
+  class_store_columntitle(titles,"theta_sfdm",pba->has_sfdm);
+  class_store_columntitle(titles,"y1_sfdm",pba->has_sfdm);
+  class_store_columntitle(titles,"alpha_sfdm",pba->has_sfdm);
 
   class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
@@ -2287,7 +2288,7 @@ int background_derivs(
     
   if (pba->has_sfdm == _TRUE_){
     /** - Scalar field dark matter EoM */
-    dy[pba->index_bi_alpha_sfdm] = 3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
+    dy[pba->index_bi_alpha_sfdm] = 1.5*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
       (pvecback[pba->index_bg_w_tot]+cos_sfdm(pba,y[pba->index_bi_theta_sfdm]));
     dy[pba->index_bi_theta_sfdm] = y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
       (-3.*sin_sfdm(pba,y[pba->index_bi_theta_sfdm])+y[pba->index_bi_y1_sfdm]);

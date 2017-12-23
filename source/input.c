@@ -229,7 +229,7 @@ int input_init(
    *  for and the corresponding new parameter */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr","Omega_sfdm",
                                        "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
-  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
+  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm","sfdm_shooting_parameter",
                                         "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
                                         cs_background, cs_background, cs_background, cs_spectra};
@@ -817,6 +817,7 @@ int input_read_parameters(
                 aosc = pow((0.5*_PI_/theta_sfdm)/pow(1.+pow(_PI_,2)/36.,0.5),0.5);
                 /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */
                 alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+0.5*log(pba->Omega0_sfdm*1.e-14/(pow(aosc,3.)*(pba->Omega0_g+pba->Omega0_ur)));
+                //printf("tuning = %e \n",pba->sfdm_parameters[pba->sfdm_tuning_index]);
                 /** - Set up initial conditions */
                 pba->theta_ini_sfdm = theta_sfdm;
                 pba->alpha_ini_sfdm = alpha_sfdm;
@@ -1066,17 +1067,17 @@ int input_read_parameters(
   if (flag1 == _FALSE_) {
     //Fill with Lambda
     pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
-    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_Lambda = %e\n",pba->Omega0_lambda);
+    if (input_verbose > 2) printf(" -> matched budget equations by adjusting Omega_Lambda = %e\n",pba->Omega0_lambda);
   }
   else if (flag2 == _FALSE_) {
     // Fill up with fluid
     pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
-    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_fld = %e\n",pba->Omega0_fld);
+    if (input_verbose > 2) printf(" -> matched budget equations by adjusting Omega_fld = %e\n",pba->Omega0_fld);
   }
   else if ((flag3 == _TRUE_) && (param3 < 0.)){
     // Fill up with scalar field
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
-    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_scf = %e\n",pba->Omega0_scf);
+    if (input_verbose > 2) printf(" -> matched budget equations by adjusting Omega_scf = %e\n",pba->Omega0_scf);
   }
 
   /*
