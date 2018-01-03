@@ -4513,10 +4513,10 @@ int perturb_initial_conditions(struct precision * ppr,
         ppw->pv->y[ppw->pv->index_pt_theta_fld] += k*k*alpha;
       }
 
-        /* scalar field dark matter. TODO: To be verified */
+      /* scalar field dark matter. TODO: To be verified */
       if (pba->has_sfdm == _TRUE_) {
-        ppw->pv->y[ppw->pv->index_pt_delta_sfdm] -= 3.*a_prime_over_a*alpha*(1.+cos_sfdm(pba,ppw->pvecback[pba->index_bg_theta_sfdm]));
-            //ppw->pv->y[ppw->pv->index_pt_theta_sfdm] += k*k*alpha;
+        ppw->pv->y[ppw->pv->index_pt_delta_sfdm] -= 3.*a_prime_over_a*alpha*(1.-cos_sfdm(pba,ppw->pvecback[pba->index_bg_theta_sfdm]));
+        //ppw->pv->y[ppw->pv->index_pt_theta_sfdm] += k*k*alpha;
       }
 
       /* scalar field: check */
@@ -6716,7 +6716,7 @@ int perturb_print_variables(double tau,
 
       if (pba->has_sfdm == _TRUE_) {
           /** TODO: verification of the gauge transformation */
-        delta_sfdm -= 3.0*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha*(1.0+cos_sfdm(pba,pvecback[pba->index_bg_theta_sfdm]));
+        delta_sfdm -= 3.0*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha*(1.0-cos_sfdm(pba,pvecback[pba->index_bg_theta_sfdm]));
         theta_sfdm += k*k*alpha;
       }
         
