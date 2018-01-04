@@ -4096,10 +4096,11 @@ int perturb_initial_conditions(struct precision * ppr,
   double w_fld,dw_over_da_fld,integral_fld;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha, alpha_prime;
   double delta_dr=0;
+  double delta_sfdm=0.,theta_sfdm=0.;
   double q,epsilon,k2;
   int index_q,n_ncdm,idx;
   double rho_r,rho_m,rho_nu,rho_m_over_rho_r;
-  double fracnu,fracg,fracb,fraccdm,om;
+  double fracnu,fracg,fracb,fraccdm,fracsfdm,om;
   double ktau_two,ktau_three;
   double f_dr;
 
@@ -4179,9 +4180,19 @@ int perturb_initial_conditions(struct precision * ppr,
 
     /* f_b = Omega_b(t_i) / Omega_m(t_i) */
     fracb = ppw->pvecback[pba->index_bg_rho_b]/rho_m;
+      
+    /* f_sfdm = Omega_sfdm(t_i) / Omega_m(t_i) */
+    /* For consistency with the inclusion of SFDM in the matter budget above.
+       There is no major effect in the case of pure CDM or pure SFDM, but it
+       introduces changes in the cases the two components are present in non-neglibile amounts,
+       in the case of isocurvature initial conditions and in the calculations of quantities in
+       the Newtonian gauge.
+    */
+    fracsfdm = ppw->pvecback[pba->index_bg_rho_sfdm]/rho_m;
 
     /* f_cdm = Omega_cdm(t_i) / Omega_m(t_i) */
-    fraccdm = 1.-fracb;
+    // Notice that now it takes into account the presence of SFDM
+    fraccdm = 1.-fracb-fracsfdm;
 
     /* Omega_m(t_i) / Omega_r(t_i) */
     rho_m_over_rho_r = rho_m/rho_r;
@@ -4267,8 +4278,8 @@ int perturb_initial_conditions(struct precision * ppr,
       }
         
       if (pba->has_sfdm == _TRUE_) {
-            /** - ---> Scalar field dark matter (solving for the perturbations):
-             *  initial perturbations set to the attractor solution, see arXiv:1511.08195, arXiv:1703.10180. */
+        /** - ---> Scalar field dark matter (solving for the perturbations):
+         *  initial perturbations set to the attractor solution, see arXiv:1511.08195, arXiv:1703.10180. */
 
         ppw->pv->y[ppw->pv->index_pt_delta_sfdm] = (3./7.)*ppw->pv->y[ppw->pv->index_pt_delta_g]*sin(0.5*ppw->pvecback[pba->index_bg_theta_sfdm])*
         sin(ppw->pvecback[pba->index_bg_theta_sfdm]/12.);
@@ -4333,7 +4344,8 @@ int perturb_initial_conditions(struct precision * ppr,
       class_test(pba->has_cdm == _FALSE_,
                  ppt->error_message,
                  "not consistent to ask for CDI in absence of CDM!");
-
+      
+        // TODO: include the presence of SFDM in the formulas below.
       ppw->pv->y[ppw->pv->index_pt_delta_g] = ppr->entropy_ini*fraccdm*om*tau*(-2./3.+om*tau/4.);
       ppw->pv->y[ppw->pv->index_pt_theta_g] = -ppr->entropy_ini*fraccdm*om*ktau_two/12.;
 
@@ -4477,12 +4489,18 @@ int perturb_initial_conditions(struct precision * ppr,
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
       else
         delta_cdm=0.;
+        
+      if (pba->has_sfdm == _TRUE_) {
+        delta_sfdm = ppw->pv->y[ppw->pv->index_pt_delta_sfdm];
+          // TODO: Include the right value of theta_sfdm here.
+        theta_sfdm = 0.;
+      }
 
       // note: if there are no neutrinos, fracnu, delta_ur and theta_ur below will consistently be zero.
 
-      delta_tot = (fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*delta_cdm))/(1.+rho_m_over_rho_r);
+      delta_tot = (fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*delta_cdm+fracsfdm*delta_sfdm))/(1.+rho_m_over_rho_r);
 
-      velocity_tot = ((4./3.)*(fracg*ppw->pv->y[ppw->pv->index_pt_theta_g]+fracnu*theta_ur) + rho_m_over_rho_r*fracb*ppw->pv->y[ppw->pv->index_pt_theta_b])/(1.+rho_m_over_rho_r);
+      velocity_tot = ((4./3.)*(fracg*ppw->pv->y[ppw->pv->index_pt_theta_g]+fracnu*theta_ur) + rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_theta_b]+fracsfdm*theta_sfdm))/(1.+rho_m_over_rho_r);
 
       alpha = (eta + 3./2.*a_prime_over_a*a_prime_over_a/k/k/s2_squared*(delta_tot + 3.*a_prime_over_a/k/k*velocity_tot))/a_prime_over_a;
 
