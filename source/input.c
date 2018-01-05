@@ -3800,7 +3800,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     case Omega_sfdm:
       output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_sfdm]/(ba.H0*ba.H0)
         -ba.Omega0_sfdm;
-        break;
+      break;
     case Omega_scf:
       /** - In case scalar field is used to fill, pba->Omega0_scf is not equal to pfzw->target_value[i].*/
       output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_scf]/(ba.H0*ba.H0)
