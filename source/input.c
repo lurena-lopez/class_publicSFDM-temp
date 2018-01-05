@@ -3801,6 +3801,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
       output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_sfdm]/(ba.H0*ba.H0)
         -ba.Omega0_sfdm;
       break;
+    /**   case omega_sfdm:
+            output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_sfdm]/(ba.H0*ba.H0)
+            -ba.Omega0_sfdm;
+            break;*/
     case Omega_scf:
       /** - In case scalar field is used to fill, pba->Omega0_scf is not equal to pfzw->target_value[i].*/
       output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_scf]/(ba.H0*ba.H0)
@@ -3947,6 +3951,10 @@ int input_get_guess(double *xguess,
       xguess[index_guess] = ba.sfdm_parameters[ba.sfdm_tuning_index];
       dxdy[index_guess] = 1.;
       break;
+    /*    case omega_sfdm:
+            xguess[index_guess] = ba.sfdm_parameters[ba.sfdm_tuning_index];
+            dxdy[index_guess] = 1.;
+            break; */
     case Omega_scf:
 
  /** - This guess is arbitrary, something nice using WKB should be implemented.
@@ -4107,6 +4115,7 @@ int input_auxillary_target_conditions(struct file_content * pfc,
   case Omega_dcdmdr:
   case omega_dcdmdr:
   case Omega_sfdm:
+  //case omega_sfdm:
   case Omega_scf:
   case Omega_ini_dcdm:
   case omega_ini_dcdm:
