@@ -797,7 +797,7 @@ int input_read_parameters(
         /** - Initial conditions for scalar field dark matter variables */
         /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
         /** - The mass parameter is m = sfdm_parameters[0] */
-        pba->y1_ini_sfdm = 2.*15.64*pba->sfdm_parameters[0]/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+        pba->y1_ini_sfdm = 2.*15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
         
         /** - Read if the user wants to use the attractor trajectory */
         class_call(parser_read_string(pfc,
@@ -812,7 +812,7 @@ int input_read_parameters(
             if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
                 pba->attractor_ic_sfdm = _TRUE_;
                 /** - Use the attractor trajectory for the inital value of the angular variable */
-                theta_sfdm = 0.4*15.64*pba->sfdm_parameters[0]/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+                theta_sfdm = 0.2*pba->y1_ini_sfdm; //0.4*15.64*pba->sfdm_parameters[0]/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
                 /** - Find the scale factor at the start of field oscillations */
                 aosc = pow((0.5*_PI_/theta_sfdm)/pow(1.+pow(_PI_,2)/36.,0.5),0.5);
                 /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */

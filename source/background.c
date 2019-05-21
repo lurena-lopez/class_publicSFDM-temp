@@ -1821,7 +1821,7 @@ int background_solve(
                  exp(2.*pvecback[pba->index_bg_alpha_sfdm]), pba->Omega0_sfdm);
         printf(" -> Mass_sfdm = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n",
                3.19696e-30*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]);
-        printf("    -> wished = %1.2e [eV]\n", pba->sfdm_parameters[0]);
+        printf("    -> wished = %1.2e [eV]\n", pow(10.,pba->sfdm_parameters[0]));
       }
       
     if(pba->has_lambda == _TRUE_)
