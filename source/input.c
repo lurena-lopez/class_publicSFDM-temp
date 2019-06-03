@@ -518,7 +518,8 @@ int input_read_parameters(
   double param1,param2,param3;
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
-  double theta_sfdm, alpha_sfdm, aosc;
+  double theta_sfdm, y1_sfdm, alpha_sfdm, aosc;
+  double masstohubble_ini, b3, aosc3;
   double scf_lambda;
   double fnu_factor;
   double * pointer1;
@@ -794,11 +795,6 @@ int input_read_parameters(
         /** - Assign shooting parameter */
         class_read_double("sfdm_shooting_parameter",pba->sfdm_parameters[pba->sfdm_tuning_index]);
         
-        /** - Initial conditions for scalar field dark matter variables */
-        /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
-        /** - The mass parameter is m = sfdm_parameters[0] */
-        pba->y1_ini_sfdm = 2.*15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
-        
         /** - Read if the user wants to use the attractor trajectory */
         class_call(parser_read_string(pfc,
                                       "attractor_ic_sfdm",
@@ -811,25 +807,68 @@ int input_read_parameters(
         if (flag1 == _TRUE_){
             if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
                 pba->attractor_ic_sfdm = _TRUE_;
-                /** - Use the attractor trajectory for the inital value of the angular variable */
-                theta_sfdm = 0.2*pba->y1_ini_sfdm; //0.4*15.64*pba->sfdm_parameters[0]/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+                /** - Initial attractor conditions for SFDM variables */
+                /** - The mass parameter is m = pow(10.,sfdm_parameters[0]) */
+                /** - Initial value of the mass to Hubble ratio, assuming a_i = 1.e-14 */
+                masstohubble_ini = 15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+                /** - If lambda < 0 */
+                if (pba->sfdm_parameters[1] < 0.){
+                    /** - For the initial values of theta_ini and Omega_ini we use the attractor scaling solution during radiation domination */
+                    theta_sfdm = acos(-1./3.);
+                    alpha_sfdm = 0.5*log(-12./pba->sfdm_parameters[1]);
+                    /** - For the initial mass to Hubble ratio we are using the estimation in Eq.(22) of Matos & Urena-Lopez in astro-ph/0006024 [PRD 63.063056, 2001] */
+                    /** - We assume a_i = 1.e-14 */
+                    masstohubble_ini = 1.e-28*pow(pba->sfdm_parameters[1]/3.-4.,2.)*pow(pba->Omega0_sfdm/(pba->Omega0_g+pba->Omega0_ur),2.);
+                    /** The parameter to be adjusted is y1_ini, and in consequence the scalar field mass is an output value linked to lambda */
+                    /** The tuning parameter was adjusted so that it also works with negative values */
+                    y1_sfdm = 2.*masstohubble_ini*(4.5+pba->sfdm_parameters[pba->scf_tuning_index]);
+                }
+                else{
+                /** - Otherwise: lambda > = 0 */
                 /** - Find the scale factor at the start of field oscillations */
-                aosc = pow((0.5*_PI_/theta_sfdm)/pow(1.+pow(_PI_,2)/36.,0.5),0.5);
-                /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */
-                alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+0.5*log(pba->Omega0_sfdm*1.e-14/(pow(aosc,3.)*(pba->Omega0_g+pba->Omega0_ur)));
-                //printf("tuning = %e \n",pba->sfdm_parameters[pba->sfdm_tuning_index]);
-                /** - Set up initial conditions */
+                /** - We are using the estimation in Eq.(2.13) of Urena-Lopez & Gonzalez-Morales in arXiv/1511.08195 [JCAP 7.048, 2016] */
+                aosc = 1.e-14*pow(1.25*_PI_/(masstohubble_ini*pow(1.+pow(_PI_,2)/36.,0.5)),0.5);
+                b3 = pba->sfdm_parameters[1]*pba->Omega0_sfdm/(72.*(pba->Omega0_g+pba->Omega0_ur));
+                /** - For the initial values we are using the estimations in Eq.(5) of Cedeno et al in arXiv:1703.10180 [PRD 96.061301, 2017] */
+                /** - Solve the exponential equation for aosc by Newton-Raphson. It works reasonably for lambda >=0 */
+                aosc3 = pow(aosc_cubic(aosc,b3),3.);
+                /** - If lambda > 0 */
+                if (pba->sfdm_parameters[1] > 0.){
+                    alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+
+                    log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
+                    //log(pba->Omega0_scf*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
+                }
+                else{
+                    /** - Otherwise: lambda = 0 */
+                    /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */
+                    alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+0.5*log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
+                }
+                /** - These are the same formulas for the three potentials */
+                /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
+                y1_sfdm = 2.*masstohubble_ini;
+                /** - Use the attractor trajectory for the inital value of the angular variable */
+                theta_sfdm = 0.2*y1_sfdm*pow(1.-2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),0.5);
+                }
+                if (pba->sfdm_parameters[1] > 0.)
+                    printf(" -> ratio = %1.6e, lambda_scf = %1.2e, tuning = %1.6e, suggested = %1.6e\n",
+                           2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),pba->scf_parameters[1],pba->sfdm_parameters[pba->scf_tuning_index]+
+                           2.*log(y1_sfdm)-log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))-log(2.*pba->sfdm_parameters[1]),
+                           2.*log(y1_sfdm)-log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))-log(2.*pba->sfdm_parameters[1]));
+                
+                /** - Finally, set up the initial conditions */
                 pba->theta_ini_sfdm = theta_sfdm;
+                pba->y1_ini_sfdm = y1_sfdm; //2.*15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
                 pba->alpha_ini_sfdm = alpha_sfdm;
             }
             else{
                 pba->attractor_ic_sfdm = _FALSE_;
                 class_test(pba->scf_parameters_size<2,
                            errmsg,
-                           "Since you are not using the attractor initial conditions,you must specify theta and Omega_sfdm as the last two entries in sfdm_parameters. See explanatory.ini for more details.");
+                           "Since you are not using the attractor initial conditions,you must specify SFDM variables as the last three entries in sfdm_parameters. See explanatory.ini for more details.");
                 /** - Set up initial conditions */
                 pba->theta_ini_sfdm = pba->sfdm_parameters[pba->sfdm_parameters_size-2];
-                pba->alpha_ini_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+0.5*log(pba->sfdm_parameters[pba->sfdm_parameters_size-1]);
+                pba->y1_ini_sfdm = pba->sfdm_parameters[pba->sfdm_parameters_size-1];
+                pba->alpha_ini_sfdm = pba->sfdm_parameters[pba->sfdm_parameters_size];
             }
         }
         
@@ -4420,4 +4459,20 @@ int input_prepare_pk_eq(
 
   return _SUCCESS_;
 
+}
+
+double aosc_cubic(double aosc,
+                  double b3
+                  ) {
+    double aguess1 = aosc;
+    double aguess2;
+    int i;
+    for (i=0; i < 30; i++) {
+        /** - Here an exponential approximation to calculate aosc */
+        aguess2 = aguess1 - (pow(aguess1,2.)*exp(b3*aguess1)-pow(aosc,2.))/(exp(b3*aguess1)*(b3*pow(aguess1,2.)+2.*aguess1));
+        //aguess2 = aguess1 - (b3*pow(aguess1,3.)+pow(aguess1,2.)-pow(aosc,2.))/(3.*b3*pow(aguess1,2.)+2.*aguess1);
+        if (abs(aguess2-aguess1)/aguess1 < 1.e-4) break;
+        aguess1 = aguess2;
+    }
+    return aguess2;
 }
