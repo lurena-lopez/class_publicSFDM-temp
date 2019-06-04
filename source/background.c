@@ -1886,6 +1886,7 @@ int background_solve(
         printf("Scalar Field Dark Matter details:\n");
         printf(" -> Omega_sfdm = %g, wished %g\n",
                  exp(2.*pvecback[pba->index_bg_alpha_sfdm]), pba->Omega0_sfdm);
+        printf(" -> lambda_sfdm = %1.2e\n",pba->sfdm_parameters[1]);
         printf(" -> Mass_sfdm = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n",
                3.19696e-30*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]);
         printf("    -> wished = %1.2e [eV]\n", pow(10.,pba->sfdm_parameters[0]));
@@ -2434,10 +2435,13 @@ int background_derivs(
     /** - Scalar field dark matter EoM */
     dy[pba->index_bi_alpha_sfdm] = 1.5*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
       (pvecback[pba->index_bg_w_tot]+cos_sfdm(pba,y[pba->index_bi_theta_sfdm]));
+      
     dy[pba->index_bi_theta_sfdm] = y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
-      (-3.*sin_sfdm(pba,y[pba->index_bi_theta_sfdm])+y[pba->index_bi_y1_sfdm]);
+      (-3.*sin_sfdm(pba,y[pba->index_bi_theta_sfdm])+y[pba->index_bi_y1_sfdm]*
+       pow(1.-pba->sfdm_parameters[1]*exp(2.*y[pba->index_bi_alpha_sfdm])*(1.+cos_sfdm(pba,y[pba->index_bi_theta_sfdm]))/pow(y[pba->index_bi_y1_sfdm],2.),0.5));
+      
     dy[pba->index_bi_y1_sfdm] = y[pba->index_bi_a]*pvecback[pba->index_bg_H]*
-      (1.5*(1.+pvecback[pba->index_bg_w_tot])*y[pba->index_bi_y1_sfdm]);
+      1.5*(1.+pvecback[pba->index_bg_w_tot])*y[pba->index_bi_y1_sfdm];
     }
 
   if (pba->has_scf == _TRUE_){

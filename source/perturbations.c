@@ -7556,8 +7556,13 @@ int perturb_derivs(double tau,
           
       /** - ----> sfdm delta1 */
           
-      dy[pv->index_pt_delta1_sfdm] = -a_prime_over_a*((3.*cos_sfdm(pba,theta_sfdm)+omega_sfdm*sin_sfdm(pba,theta_sfdm))*delta1_sfdm
-                                                            -omega_sfdm*(1.+cos_sfdm(pba,theta_sfdm))*delta_sfdm)
+        dy[pv->index_pt_delta1_sfdm] = -a_prime_over_a*((3.*cos_sfdm(pba,theta_sfdm)+
+                                                         (omega_sfdm-0.5*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/
+                                                          (y1_sfdm*pow(1.-pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)*(1.+cos_sfdm(pba,theta_sfdm))/pow(y1_sfdm,2.),0.5)))*
+                                                       sin_sfdm(pba,theta_sfdm))*delta1_sfdm
+                                                        -(omega_sfdm-0.5*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/
+                                                          (y1_sfdm*pow(1.-pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)*(1.+cos_sfdm(pba,theta_sfdm))/pow(y1_sfdm,2.),0.5)))
+                                                        *(1.+cos_sfdm(pba,theta_sfdm))*delta_sfdm)
         -metric_continuity*sin_sfdm(pba,theta_sfdm); //metric_continuity = h'/2
     }
       

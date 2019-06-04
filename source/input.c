@@ -836,7 +836,7 @@ int input_read_parameters(
                 if (pba->sfdm_parameters[1] > 0.){
                     alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+
                     log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
-                    //log(pba->Omega0_scf*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
+                    //0.5*log(pba->Omega0_scf*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
                 }
                 else{
                     /** - Otherwise: lambda = 0 */
@@ -851,9 +851,8 @@ int input_read_parameters(
                 }
                 if (pba->sfdm_parameters[1] > 0.)
                     printf(" -> ratio = %1.6e, lambda_scf = %1.2e, tuning = %1.6e, suggested = %1.6e\n",
-                           2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),pba->scf_parameters[1],pba->sfdm_parameters[pba->scf_tuning_index]+
-                           2.*log(y1_sfdm)-log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))-log(2.*pba->sfdm_parameters[1]),
-                           2.*log(y1_sfdm)-log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))-log(2.*pba->sfdm_parameters[1]));
+                           2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),pba->sfdm_parameters[1],pba->sfdm_parameters[pba->scf_tuning_index],
+                           -log(y1_sfdm)+0.5*log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))+0.5*log(2.*pba->sfdm_parameters[1]));
                 
                 /** - Finally, set up the initial conditions */
                 pba->theta_ini_sfdm = theta_sfdm;
