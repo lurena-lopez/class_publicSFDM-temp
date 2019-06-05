@@ -430,6 +430,8 @@ int background_functions(
     pvecback[pba->index_bg_alpha_sfdm] = alpha_sfdm; // value of 0.5*log(Omega_sfdm)
     pvecback[pba->index_bg_rho_sfdm] = exp(2.*alpha_sfdm)*rho_tot/(1.-exp(2.*alpha_sfdm)); // energy of the sfdm.
     pvecback[pba->index_bg_p_sfdm] = -cos_sfdm(pba,theta_sfdm)*pvecback[pba->index_bg_rho_sfdm]; // pressure of the sfdm
+    rho_r += 3.*pvecback[pba->index_bg_p_sfdm]; //field pressure contributes radiation
+    rho_m += pvecback[pba->index_bg_rho_sfdm] - 3.* pvecback[pba->index_bg_p_sfdm]; //the rest contributes matter
     rho_tot += pvecback[pba->index_bg_rho_sfdm];
     p_tot += pvecback[pba->index_bg_p_sfdm];
                                  //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
@@ -1889,6 +1891,7 @@ int background_solve(
         printf(" -> lambda_sfdm = %1.2e\n",pba->sfdm_parameters[1]);
         printf(" -> Mass_sfdm = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n",
                3.19696e-30*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]);
+        if (pba->sfdm_parameters[1] >= 0.)
         printf("    -> wished = %1.2e [eV]\n", pow(10.,pba->sfdm_parameters[0]));
       }
       

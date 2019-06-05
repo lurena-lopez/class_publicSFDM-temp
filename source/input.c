@@ -808,9 +808,6 @@ int input_read_parameters(
             if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
                 pba->attractor_ic_sfdm = _TRUE_;
                 /** - Initial attractor conditions for SFDM variables */
-                /** - The mass parameter is m = pow(10.,sfdm_parameters[0]) */
-                /** - Initial value of the mass to Hubble ratio, assuming a_i = 1.e-14 */
-                masstohubble_ini = 15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
                 /** - If lambda < 0 */
                 if (pba->sfdm_parameters[1] < 0.){
                     /** - For the initial values of theta_ini and Omega_ini we use the attractor scaling solution during radiation domination */
@@ -819,12 +816,15 @@ int input_read_parameters(
                     /** - For the initial mass to Hubble ratio we are using the estimation in Eq.(22) of Matos & Urena-Lopez in astro-ph/0006024 [PRD 63.063056, 2001] */
                     /** - We assume a_i = 1.e-14 */
                     masstohubble_ini = 1.e-28*pow(pba->sfdm_parameters[1]/3.-4.,2.)*pow(pba->Omega0_sfdm/(pba->Omega0_g+pba->Omega0_ur),2.);
-                    /** The parameter to be adjusted is y1_ini, and in consequence the scalar field mass is an output value linked to lambda */
+                    /** The parameter to be adjusted is y1_sfdm, and in consequence the scalar field mass is an output value linked to lambda */
                     /** The tuning parameter was adjusted so that it also works with negative values */
-                    y1_sfdm = 2.*masstohubble_ini*(4.5+pba->sfdm_parameters[pba->scf_tuning_index]);
+                    y1_sfdm = 2.*masstohubble_ini*(4.5+pba->sfdm_parameters[pba->sfdm_tuning_index]);
                 }
                 else{
                 /** - Otherwise: lambda > = 0 */
+                /** - The mass parameter is m = pow(10.,sfdm_parameters[0]) */
+                /** - Initial value of the mass to Hubble ratio, assuming a_i = 1.e-14 */
+                masstohubble_ini = 15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
                 /** - Find the scale factor at the start of field oscillations */
                 /** - We are using the estimation in Eq.(2.13) of Urena-Lopez & Gonzalez-Morales in arXiv/1511.08195 [JCAP 7.048, 2016] */
                 aosc = 1.e-14*pow(1.25*_PI_/(masstohubble_ini*pow(1.+pow(_PI_,2)/36.,0.5)),0.5);
@@ -837,6 +837,9 @@ int input_read_parameters(
                     alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+
                     log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
                     //0.5*log(pba->Omega0_scf*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
+                    printf(" -> ratio = %1.6e, lambda_sfdm = %1.2e, tuning = %1.6e, suggested = %1.6e\n",
+                           2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(2.*masstohubble_ini,2.),pba->sfdm_parameters[1],pba->sfdm_parameters[pba->sfdm_tuning_index],
+                           log(2.*masstohubble_ini)-0.5*log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))-0.5*log(2.*pba->sfdm_parameters[1]));
                 }
                 else{
                     /** - Otherwise: lambda = 0 */
@@ -849,14 +852,9 @@ int input_read_parameters(
                 /** - Use the attractor trajectory for the inital value of the angular variable */
                 theta_sfdm = 0.2*y1_sfdm*pow(1.-2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),0.5);
                 }
-                if (pba->sfdm_parameters[1] > 0.)
-                    printf(" -> ratio = %1.6e, lambda_scf = %1.2e, tuning = %1.6e, suggested = %1.6e\n",
-                           2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),pba->sfdm_parameters[1],pba->sfdm_parameters[pba->scf_tuning_index],
-                           -log(y1_sfdm)+0.5*log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))+0.5*log(2.*pba->sfdm_parameters[1]));
-                
                 /** - Finally, set up the initial conditions */
                 pba->theta_ini_sfdm = theta_sfdm;
-                pba->y1_ini_sfdm = y1_sfdm; //2.*15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+                pba->y1_ini_sfdm = y1_sfdm;
                 pba->alpha_ini_sfdm = alpha_sfdm;
             }
             else{
