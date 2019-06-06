@@ -519,7 +519,7 @@ int input_read_parameters(
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
   double theta_sfdm, y1_sfdm, alpha_sfdm, aosc;
-  double masstohubble_ini, b3, aosc3;
+  double masstohubble_ini;
   double scf_lambda;
   double fnu_factor;
   double * pointer1;
@@ -828,23 +828,24 @@ int input_read_parameters(
                 /** - Find the scale factor at the start of field oscillations */
                 /** - We are using the estimation in Eq.(2.13) of Urena-Lopez & Gonzalez-Morales in arXiv/1511.08195 [JCAP 7.048, 2016] */
                 aosc = 1.e-14*pow(1.25*_PI_/(masstohubble_ini*pow(1.+pow(_PI_,2)/36.,0.5)),0.5);
-                b3 = pba->sfdm_parameters[1]*pba->Omega0_sfdm/(72.*(pba->Omega0_g+pba->Omega0_ur));
-                /** - For the initial values we are using the estimations in Eq.(5) of Cedeno et al in arXiv:1703.10180 [PRD 96.061301, 2017] */
-                /** - Solve the exponential equation for aosc by Newton-Raphson. It works reasonably for lambda >=0 */
-                aosc3 = pow(aosc_cubic(aosc,b3),3.);
                 /** - If lambda > 0 */
                 if (pba->sfdm_parameters[1] > 0.){
-                    alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+
-                    log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
-                    //0.5*log(pba->Omega0_scf*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
-                    printf(" -> ratio = %1.6e, lambda_sfdm = %1.2e, tuning = %1.6e, suggested = %1.6e\n",
-                           2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(2.*masstohubble_ini,2.),pba->sfdm_parameters[1],pba->sfdm_parameters[pba->sfdm_tuning_index],
-                           log(2.*masstohubble_ini)-0.5*log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)))-0.5*log(2.*pba->sfdm_parameters[1]));
+                    if (pba->sfdm_parameters[1] > 1.0e4)
+                        alpha_sfdm = 0.5*log(1.+pba->sfdm_parameters[pba->sfdm_tuning_index]-1.0e-5)
+                        +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
+                    //log(pba->Omega0_scf*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
+                    if ((pba->sfdm_parameters[1] <= 1.0e4) && (pba->sfdm_parameters[1] >= 1.0))
+                        alpha_sfdm = 0.5*log(1.+pba->sfdm_parameters[pba->sfdm_tuning_index]-0.9999)
+                        +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
+                    if (pba->sfdm_parameters[1] < 1.)
+                        alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]-5.0
+                        +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
                 }
                 else{
                     /** - Otherwise: lambda = 0 */
                     /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */
-                    alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+0.5*log(pba->Omega0_sfdm*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
+                    alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+
+                    0.5*log(pba->Omega0_sfdm*1.e-56/(pow(aosc,3.)*(pba->Omega0_g+pba->Omega0_ur)));
                 }
                 /** - These are the same formulas for the three potentials */
                 /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
@@ -868,10 +869,6 @@ int input_read_parameters(
                 pba->alpha_ini_sfdm = pba->sfdm_parameters[pba->sfdm_parameters_size];
             }
         }
-        
-        //sfdm_lambda = pba->sfdm_parameters[0];
-        //if ((fabs(sfdm_lambda) <3.)&&(pba->background_verbose>1))
-        //printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",sfdm_lambda);
     }
 
 
@@ -4456,20 +4453,4 @@ int input_prepare_pk_eq(
 
   return _SUCCESS_;
 
-}
-
-double aosc_cubic(double aosc,
-                  double b3
-                  ) {
-    double aguess1 = aosc;
-    double aguess2;
-    int i;
-    for (i=0; i < 30; i++) {
-        /** - Here an exponential approximation to calculate aosc */
-        aguess2 = aguess1 - (pow(aguess1,2.)*exp(b3*aguess1)-pow(aosc,2.))/(exp(b3*aguess1)*(b3*pow(aguess1,2.)+2.*aguess1));
-        //aguess2 = aguess1 - (b3*pow(aguess1,3.)+pow(aguess1,2.)-pow(aosc,2.))/(3.*b3*pow(aguess1,2.)+2.*aguess1);
-        if (abs(aguess2-aguess1)/aguess1 < 1.e-4) break;
-        aguess1 = aguess2;
-    }
-    return aguess2;
 }
