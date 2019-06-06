@@ -827,7 +827,7 @@ int input_read_parameters(
                 masstohubble_ini = 15.64*pow(10.,pba->sfdm_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
                 /** - Find the scale factor at the start of field oscillations */
                 /** - We are using the estimation in Eq.(2.13) of Urena-Lopez & Gonzalez-Morales in arXiv/1511.08195 [JCAP 7.048, 2016] */
-                aosc = 1.e-14*pow(1.25*_PI_/(masstohubble_ini*pow(1.+pow(_PI_,2)/36.,0.5)),0.5);
+                aosc = pow(1.25*_PI_/(masstohubble_ini*pow(1.+pow(_PI_,2)/36.,0.5)),0.5);
                 /** - If lambda > 0 */
                 if (pba->sfdm_parameters[1] > 0.){
                     if (pba->sfdm_parameters[1] > 1.0e4)
@@ -845,7 +845,7 @@ int input_read_parameters(
                     /** - Otherwise: lambda = 0 */
                     /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */
                     alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+
-                    0.5*log(pba->Omega0_sfdm*1.e-56/(pow(aosc,3.)*(pba->Omega0_g+pba->Omega0_ur)));
+                    0.5*log(pba->Omega0_sfdm*1.e-14/(pow(aosc,3.)*(pba->Omega0_g+pba->Omega0_ur)));
                 }
                 /** - These are the same formulas for the three potentials */
                 /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
