@@ -518,7 +518,7 @@ int input_read_parameters(
   double param1,param2,param3;
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
-  double theta_sfdm, y1_sfdm, alpha_sfdm, aosc;
+  double theta_sfdm=0., y1_sfdm, alpha_sfdm, aosc;
   double masstohubble_ini;
   double scf_lambda;
   double fnu_factor;
@@ -847,11 +847,10 @@ int input_read_parameters(
                     alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]+
                     0.5*log(pba->Omega0_sfdm*1.e-14/(pow(aosc,3.)*(pba->Omega0_g+pba->Omega0_ur)));
                 }
-                /** - These are the same formulas for the three potentials */
                 /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
                 y1_sfdm = 2.*masstohubble_ini;
                 /** - Use the attractor trajectory for the inital value of the angular variable */
-                theta_sfdm = 0.2*y1_sfdm*pow(1.-2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),0.5);
+                //theta_sfdm = 0.2*y1_sfdm*pow(1.-2.*pba->sfdm_parameters[1]*exp(2.*alpha_sfdm)/pow(y1_sfdm,2.),0.5);
                 }
                 /** - Finally, set up the initial conditions */
                 pba->theta_ini_sfdm = theta_sfdm;
