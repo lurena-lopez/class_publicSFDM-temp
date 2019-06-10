@@ -4165,9 +4165,11 @@ int perturb_initial_conditions(struct precision * ppr,
       rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
     }
       
-    /* Include sfdm as part of the matter budget */
+    /* Include sfdm as part of the matter and radiation budgets */
     if (pba->has_sfdm == _TRUE_) {
-       rho_m += ppw->pvecback[pba->index_bg_rho_sfdm];
+       rho_m += ppw->pvecback[pba->index_bg_rho_sfdm] - 3.*ppw->pvecback[pba->index_bg_p_sfdm];
+       rho_r += 3.*ppw->pvecback[pba->index_bg_p_sfdm];
+       rho_nu += 3.*ppw->pvecback[pba->index_bg_p_sfdm];
     }
 
     if (pba->has_dr == _TRUE_) {
