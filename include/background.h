@@ -530,7 +530,19 @@ extern "C" {
   double cos_sfdm(struct background *pba, double theta_phi);
     
   double sin_sfdm(struct background *pba, double theta_phi);
-
+    
+  double y2a_sfdm(struct background *pba,
+                  double alpha_sfdm,
+                  double theta_sfdm,
+                  double y1_sfdm
+                  );
+    
+  double y2b_sfdm(struct background *pba,
+                  double alpha_sfdm,
+                  double theta_sfdm,
+                  double y1_sfdm
+                  );
+    
   /** Scalar field potential and its derivatives **/
   double V_scf(
                struct background *pba,

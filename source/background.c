@@ -2477,6 +2477,34 @@ double sin_sfdm(struct background *pba,
 }
 
 /**
+ * y2a function for the background and linear perturbations
+ */
+double y2a_sfdm(struct background *pba,
+                double alpha_sfdm, double theta_sfdm, double y1_sfdm
+                ) {
+    double lambda0_sfdm = pba->scf_parameters[1];
+    double lambda1_sfdm = pba->scf_parameters[2];
+    double lambda2_sfdm = pba->scf_parameters[3];
+    return 0.5*lambda0_sfdm*exp(2.*alpha_sfdm)*sin_sfdm(pba,theta_sfdm)+
+    lambda1_sfdm*exp(alpha_sfdm)*sin_sfdm(pba,0.5*theta_sfdm)*y1_sfdm+
+    lambda2_sfdm*tan(0.5*theta_sfdm)*pow(y1_sfdm,2.);
+}
+
+/**
+ * y2b function for the linear perturbations
+ */
+double y2b_sfdm(struct background *pba,
+                double alpha_sfdm, double theta_sfdm, double y1_sfdm
+                ) {
+    double lambda0_sfdm = pba->scf_parameters[1];
+    double lambda1_sfdm = pba->scf_parameters[2];
+    double lambda2_sfdm = pba->scf_parameters[3];
+    return 0.5*lambda0_sfdm*exp(2.*alpha_sfdm)*(1.+cos_sfdm(pba,theta_sfdm))+
+    lambda1_sfdm*exp(alpha_sfdm)*cos_sfdm(pba,0.5*theta_sfdm)*y1_sfdm+
+    lambda2_sfdm*tan(0.5*theta_sfdm)*pow(y1_sfdm,2.);
+}
+
+/**
  * Scalar field potential and its derivatives with respect to the field _scf
  * For Albrecht & Skordis model: 9908085
  * - \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
