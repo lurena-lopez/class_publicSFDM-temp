@@ -1642,6 +1642,9 @@ int background_solve(
   int last_index=0;
   /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
   double comoving_radius=0.;
+  /* initial displacement for axion-SFDM */
+  double ini_misalignment=0.;
+
 
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -1893,6 +1896,15 @@ int background_solve(
                3.19696e-30*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_sfdm]);
         if (pba->sfdm_parameters[1] >= 0.)
         printf("    -> wished = %1.2e [eV]\n", pow(10.,pba->sfdm_parameters[0]));
+        if (pba->sfdm_parameters[1] > 0.){
+            ini_misalignment = pba->y1_ini_sfdm*exp(-pba->alpha_ini_sfdm)*
+            pow(1.-pba->sfdm_parameters[1]*exp(2.*pba->alpha_ini_sfdm)*
+                (1.+cos_sfdm(pba,pba->theta_ini_sfdm))/pow(pba->y1_ini_sfdm,2.),0.5)/
+            pow(2.*pba->sfdm_parameters[1],0.5);
+            printf("    Initial field misalignment:\n");
+            printf("     -> phi_ini/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(ini_misalignment),
+                   2.*atan(ini_misalignment)*180./_PI_);
+        }
       }
       
     if(pba->has_lambda == _TRUE_)
