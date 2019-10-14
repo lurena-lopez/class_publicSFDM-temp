@@ -829,16 +829,17 @@ int input_read_parameters(
                 /** - We are using the estimation in Eq.(2.13) of Urena-Lopez & Gonzalez-Morales in arXiv/1511.08195 [JCAP 7.048, 2016] */
                 aosc = pow(1.25*_PI_/(masstohubble_ini*pow(1.+pow(_PI_,2)/36.,0.5)),0.5);
                 /** - If lambda > 0 */
-                if (pba->sfdm_parameters[1] > 0.){
-                    if (pba->sfdm_parameters[1] > 1.0e4)
-                        alpha_sfdm = 0.5*log(1.+pba->sfdm_parameters[pba->sfdm_tuning_index]-1.0e-5)
-                        +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
+                if (pba->sfdm_parameters[1] > 1.e2){
+                   // if (pba->sfdm_parameters[1] > 1.0e4)
+                   //     alpha_sfdm = 0.5*log(1.+pba->sfdm_parameters[pba->sfdm_tuning_index]-1.0e-5)
+                   //     +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
                     //log(pba->Omega0_scf*1.e-56/(aosc3*(pba->Omega0_g+pba->Omega0_ur)));
-                    if ((pba->sfdm_parameters[1] <= 1.0e4) && (pba->sfdm_parameters[1] >= 1.0))
-                        alpha_sfdm = 0.5*log(1.+pba->sfdm_parameters[pba->sfdm_tuning_index]-0.9999)
-                        +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
-                    if (pba->sfdm_parameters[1] < 1.)
-                        alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]-5.0
+                   // if ((pba->sfdm_parameters[1] <= 1.0e4) && (pba->sfdm_parameters[1] >= 1.0))
+                   //     alpha_sfdm = 0.5*log(1.+pba->sfdm_parameters[pba->sfdm_tuning_index]-0.9999)
+                   //     +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
+                   // if (pba->sfdm_parameters[1] < 1.)
+                   //     alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]-5.0
+                        alpha_sfdm = pba->sfdm_parameters[pba->sfdm_tuning_index]
                         +log(2.*masstohubble_ini)-0.5*log(2.*pba->sfdm_parameters[1]);
                 }
                 else{
