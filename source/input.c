@@ -1235,22 +1235,9 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = 1./a_decay/ba.h/ba.h;
       break;
     case Omega_scf:
-      /* *
-       * This guess is arbitrary, something nice using WKB should be implemented.
-       * Version 2 uses a fit
-       * xguess[index_guess] = 1.77835*pow(ba.Omega0_scf,-2./7.);
-       * dxdy[index_guess] = -0.5081*pow(ba.Omega0_scf,-9./7.)`;
-       * Version 3: use attractor solution
-       * */
-      if (ba.scf_tuning_index == 0){
-        xguess[index_guess] = sqrt(3.0/ba.Omega0_scf);
-        dxdy[index_guess] = -0.5*sqrt(3.0)*pow(ba.Omega0_scf,-1.5);
-      }
-      else{
-        /* Default: take the passed value as xguess and set dxdy to 1. */
-        xguess[index_guess] = ba.scf_parameters[ba.scf_tuning_index];
-        dxdy[index_guess] = 1.;
-      }
+      /* Default: take the passed value as xguess and set dxdy to 1. */
+      xguess[index_guess] = ba.scf_parameters[ba.scf_tuning_index];
+      dxdy[index_guess] = 1.;
       break;
     case omega_ini_dcdm:
       Omega0_dcdmdr = 1./(ba.h*ba.h);
@@ -3328,8 +3315,8 @@ int input_read_parameters_species(struct file_content * pfc,
         class_test(pba->scf_parameters_size<2,
                    errmsg,
                    "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
-        pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
-        pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
+        //pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
+        //pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
       }
     }
 
@@ -3345,10 +3332,20 @@ int input_read_parameters_species(struct file_content * pfc,
     /** 8.b.4) Shooting parameter */
     /* Read */
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
-    /* Complete set of parameters */
-    scf_lambda = pba->scf_parameters[0];
-    if ((fabs(scf_lambda) < 3.)&&(pba->background_verbose>1)){
-      printf("'scf_lambda' = %e < 3 won't be tracking (for exp quint) unless overwritten by tuning function.",scf_lambda);
+    /* Complete set of initial conditions */
+    /* First case: tracking condition */
+    /* Second case: general initial condition */
+    if (pba->scf_parameters[3] > 0.1){
+        pba->Omega_phi_ini_scf = pba->scf_parameters[pba->scf_tuning_index]*pba->Omega0_scf
+        *pow(1.e-56*(pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),1.+0.5/pba->scf_parameters[3]);
+        pba->theta_phi_ini_scf = -acosh(1.+2./(3.*pba->scf_parameters[3]));
+        pba->y_phi_ini_scf = -3.*sinh(pba->theta_phi_ini_scf);
+        pba->Omega_de_ini = pba->Omega_phi_ini_scf+1.e-56*pba->Omega0_lambda/(pba->Omega0_g+pba->Omega0_ur);
+    }
+    else{
+        pba->y_phi_ini_scf = pba->scf_parameters[0]*1.e-28*pow((pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),0.5);
+        pba->Omega_phi_ini_scf = pba->scf_parameters[pba->scf_tuning_index]+2.*log(pba->y_phi_ini_scf);
+        pba->theta_phi_ini_scf=0.2*pba->y_phi_ini_scf;
     }
   }
 
@@ -5836,10 +5833,11 @@ int input_default_params(struct background *pba,
   pba->scf_parameters_size = 0;
   /** 9.b.2) Initial conditions from attractor solution */
   pba->attractor_ic_scf = _TRUE_;
-  pba->phi_ini_scf = 1;                // MZ: initial conditions are as multiplicative
-  pba->phi_prime_ini_scf = 1;          //     factors of the radiation attractor values
+  pba->Omega_phi_ini_scf = 0.;
+  pba->Omega_de_ini = 0.;
+  pba->theta_phi_ini_scf = 0.;
   /** 9.b.3) Tuning parameter */
-  pba->scf_tuning_index = 0;
+  pba->scf_tuning_index = 4;
   /** 9.b.4) Shooting parameter */
   pba->shooting_failed = _FALSE_;
 

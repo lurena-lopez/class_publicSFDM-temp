@@ -119,8 +119,12 @@ struct background
   double * scf_parameters; /**< list of parameters describing the scalar field potential */
   short attractor_ic_scf;  /**< whether the scalar field has attractor initial conditions */
   int scf_tuning_index;    /**< index in scf_parameters used for tuning */
-  double phi_ini_scf;      /**< \f$ \phi(t_0) \f$: scalar field initial value */
-  double phi_prime_ini_scf;/**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
+  double Omega_phi_ini_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field 2*/
+  double Omega_de_ini;        /**< \f$ \Omega_{0 scf} \f$ : scalar field 2*/
+  double theta_phi_ini_scf;       /* Angular internal variable */
+  double y_phi_ini_scf; /* Second potential variable normalized */
+//  double phi_ini_scf;      /**< \f$ \phi(t_0) \f$: scalar field initial value */
+//  double phi_prime_ini_scf;/**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
   int scf_parameters_size; /**< size of scf_parameters */
   double varconst_alpha; /**< finestructure constant for varying fundamental constants */
   double varconst_me; /**< electron mass for varying fundamental constants */
@@ -177,14 +181,14 @@ struct background
   int index_bg_rho_dcdm;      /**< dcdm density */
   int index_bg_rho_dr;        /**< dr density */
 
-  int index_bg_phi_scf;       /**< scalar field value */
-  int index_bg_phi_prime_scf; /**< scalar field derivative wrt conformal time */
-  int index_bg_V_scf;         /**< scalar field potential V */
-  int index_bg_dV_scf;        /**< scalar field potential derivative V' */
-  int index_bg_ddV_scf;       /**< scalar field potential second derivative V'' */
+  int index_bg_Omega_phi_scf; /**< scalar field density parameter */
+  int index_bg_Omega_de;      /**< scalar field density parameter */
+  int index_bg_theta_phi_scf; /**< scalar field angular variable */
+  int index_bg_y_phi_scf;     /**< scalar field y_1 variable */
+  int index_bg_y2_phi_scf;    /**< scalar field y_2 variable */
   int index_bg_rho_scf;       /**< scalar field energy density */
   int index_bg_p_scf;         /**< scalar field pressure */
-  int index_bg_p_prime_scf;         /**< scalar field pressure */
+  int index_bg_p_prime_scf;   /**< scalar field pressure */
 
   int index_bg_rho_ncdm1;     /**< density of first ncdm species (others contiguous) */
   int index_bg_p_ncdm1;       /**< pressure of first ncdm species (others contiguous) */
@@ -259,8 +263,10 @@ struct background
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
   int index_bi_rho_fld; /**< {B} fluid density */
-  int index_bi_phi_scf;       /**< {B} scalar field value */
-  int index_bi_phi_prime_scf; /**< {B} scalar field derivative wrt conformal time */
+  int index_bi_Omega_phi_scf; /**< {B} scalar field density parameter */
+  int index_bi_Omega_de; /**< {B} scalar field density parameter */
+  int index_bi_theta_phi_scf; /**< {B} scalar field angular variable */
+  int index_bi_y_phi_scf; /**< {B} scalar field y_1 */
 
   int index_bi_time;    /**< {C} proper (cosmological) time in Mpc */
   int index_bi_rs;      /**< {C} sound horizon */
@@ -549,21 +555,20 @@ extern "C" {
                                struct background* pba
                                );
 
-  /** Scalar field potential and its derivatives **/
-  double V_scf(
-               struct background *pba,
-               double phi
-               );
+  /** Scalar field quantities **/
+  double cos_scf(struct background *pba,
+     double theta_phi
+     );
 
-  double dV_scf(
-                struct background *pba,
-                double phi
-                );
+  double sin_scf(struct background *pba,
+     double theta_phi
+     );
 
-  double ddV_scf(
-                 struct background *pba,
-                 double phi
-                 );
+  double y2_phi_scf(struct background *pba,
+        double Omega_phi,
+        double theta,
+        double y1_phi
+        );
 
   /** Coupling between scalar field and matter **/
   double Q_scf(
