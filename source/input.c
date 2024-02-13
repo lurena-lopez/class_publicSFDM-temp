@@ -3340,7 +3340,6 @@ int input_read_parameters_species(struct file_content * pfc,
         *pow(1.e-56*(pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),1.+0.5/pba->scf_parameters[3]);
         pba->theta_phi_ini_scf = -acosh(1.+2./(3.*pba->scf_parameters[3]));
         pba->y_phi_ini_scf = -3.*sinh(pba->theta_phi_ini_scf);
-        pba->Omega_de_ini = pba->Omega_phi_ini_scf+1.e-56*pba->Omega0_lambda/(pba->Omega0_g+pba->Omega0_ur);
     }
     else{
         pba->y_phi_ini_scf = pba->scf_parameters[0]*1.e-28*pow((pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),0.5);
@@ -5834,7 +5833,6 @@ int input_default_params(struct background *pba,
   /** 9.b.2) Initial conditions from attractor solution */
   pba->attractor_ic_scf = _TRUE_;
   pba->Omega_phi_ini_scf = 0.;
-  pba->Omega_de_ini = 0.;
   pba->theta_phi_ini_scf = 0.;
   /** 9.b.3) Tuning parameter */
   pba->scf_tuning_index = 4;

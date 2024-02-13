@@ -397,7 +397,7 @@ int background_functions(
   /* fluid's time-dependent equation of state parameter */
   double w_fld, dw_over_da, integral_fld;
   /* scalar field quantities */
-  double Omega_phi, Omega_de, theta_phi, y1_phi;
+  double Omega_phi, theta_phi, y1_phi;
   /* Since we only know a_prime_over_a after we have rho_tot,
      it is not possible to simply sum up p_tot_prime directly.
      Instead we sum up dp_dloga = p_prime/a_prime_over_a. The formula is
@@ -472,19 +472,12 @@ int background_functions(
   /* Scalar field */
   if (pba->has_scf == _TRUE_) {
     Omega_phi = pvecback_B[pba->index_bi_Omega_phi_scf];
-    Omega_de = pvecback_B[pba->index_bi_Omega_de];
     theta_phi = pvecback_B[pba->index_bi_theta_phi_scf];
     y1_phi = pvecback_B[pba->index_bi_y_phi_scf];
     pvecback[pba->index_bg_Omega_phi_scf] = Omega_phi; // value of the scalar field Omega_phi
-    pvecback[pba->index_bg_Omega_de] = Omega_de; // value of the scalar field Omega_de
     pvecback[pba->index_bg_theta_phi_scf] = theta_phi; // value of the scalar field theta_phi
     pvecback[pba->index_bg_y_phi_scf] = y1_phi; // value of the scalar field y1_phi
-    if (pba->has_lambda == _TRUE_) {
-        pvecback[pba->index_bg_rho_scf] = Omega_de*(rho_r+rho_m)/(1.-Omega_de) - pvecback[pba->index_bg_rho_lambda]; // energy of the scalar field with a CC
-    }
-    else{
         pvecback[pba->index_bg_rho_scf] = Omega_phi*rho_tot/(1.-Omega_phi); // energy of the scalar field alone
-    }
     pvecback[pba->index_bg_p_scf] = -cosh(theta_phi)*pvecback[pba->index_bg_rho_scf]; // pressure of the scalar field
     pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_rho_scf]*(sinh(theta_phi)*(3.*sinh(theta_phi)+y1_phi)
                                                                                                             +3.*cosh(theta_phi)*(1.-cosh(theta_phi)));
@@ -1063,7 +1056,6 @@ int background_indices(
 
   /* - indices for scalar field */
   class_define_index(pba->index_bg_Omega_phi_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_Omega_de,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_theta_phi_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_y_phi_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
@@ -1164,7 +1156,6 @@ int background_indices(
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
   class_define_index(pba->index_bi_Omega_phi_scf,pba->has_scf,index_bi,1);
-  class_define_index(pba->index_bi_Omega_de,pba->has_scf,index_bi,1);
   class_define_index(pba->index_bi_theta_phi_scf,pba->has_scf,index_bi,1);
   class_define_index(pba->index_bi_y_phi_scf,pba->has_scf,index_bi,1);
 
@@ -2088,11 +2079,6 @@ int background_solve(
       printf("    -> Omega_Lambda = %g, wished %g\n",
                pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_lambda]/pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_crit], pba->Omega0_lambda);
     }
-    if((pba->has_lambda == _TRUE_) && (pba->has_scf == _TRUE_)){
-      printf(" -> Dark Energy details:\n");
-      printf("    -> Omega_DE = %g, wished %g\n",
-                 pvecback[pba->index_bg_Omega_de],pba->Omega0_scf+pba->Omega0_lambda);
-    }
   }
 
   /**  - store information in the background structure */
@@ -2272,7 +2258,6 @@ int background_initial_conditions(
    */
   if (pba->has_scf == _TRUE_) {
     pvecback_integration[pba->index_bi_Omega_phi_scf] = pba->Omega_phi_ini_scf;
-    pvecback_integration[pba->index_bi_Omega_de] = pba->Omega_de_ini;
     pvecback_integration[pba->index_bi_theta_phi_scf] = pba->theta_phi_ini_scf;
     pvecback_integration[pba->index_bi_y_phi_scf] = pba->y_phi_ini_scf;
   }
@@ -2447,7 +2432,6 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_prime_scf",pba->has_scf);
   class_store_columntitle(titles,"Omega_phi_scf",pba->has_scf);
-  class_store_columntitle(titles,"Omega_de",pba->has_scf);
   class_store_columntitle(titles,"theta_phi_scf",pba->has_scf);
   class_store_columntitle(titles,"y_phi_scf",pba->has_scf);
 
@@ -2519,7 +2503,6 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_prime_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_Omega_phi_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_Omega_de],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_theta_phi_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_y_phi_scf],pba->has_scf,storeidx);
 
@@ -2642,10 +2625,6 @@ int background_derivs(
 
     dy[pba->index_bi_Omega_phi_scf] = 3.*y[pba->index_bi_Omega_phi_scf]*
         (w_tot+cosh(y[pba->index_bi_theta_phi_scf]));
-      
-    dy[pba->index_bi_Omega_de] =3.*
-        ((1.+ w_tot)*y[pba->index_bi_Omega_de] -
-         (1. - cosh(y[pba->index_bi_theta_phi_scf]))*y[pba->index_bi_Omega_phi_scf]);
       
     dy[pba->index_bi_theta_phi_scf] =-3.*sinh(y[pba->index_bi_theta_phi_scf]) - y[pba->index_bi_y_phi_scf];
         

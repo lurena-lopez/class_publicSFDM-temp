@@ -120,7 +120,6 @@ struct background
   short attractor_ic_scf;  /**< whether the scalar field has attractor initial conditions */
   int scf_tuning_index;    /**< index in scf_parameters used for tuning */
   double Omega_phi_ini_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field 2*/
-  double Omega_de_ini;        /**< \f$ \Omega_{0 scf} \f$ : scalar field 2*/
   double theta_phi_ini_scf;       /* Angular internal variable */
   double y_phi_ini_scf; /* Second potential variable normalized */
 //  double phi_ini_scf;      /**< \f$ \phi(t_0) \f$: scalar field initial value */
@@ -182,7 +181,6 @@ struct background
   int index_bg_rho_dr;        /**< dr density */
 
   int index_bg_Omega_phi_scf; /**< scalar field density parameter */
-  int index_bg_Omega_de;      /**< scalar field density parameter */
   int index_bg_theta_phi_scf; /**< scalar field angular variable */
   int index_bg_y_phi_scf;     /**< scalar field y_1 variable */
   int index_bg_y2_phi_scf;    /**< scalar field y_2 variable */
@@ -264,7 +262,6 @@ struct background
   int index_bi_rho_dr;  /**< {B} dr density */
   int index_bi_rho_fld; /**< {B} fluid density */
   int index_bi_Omega_phi_scf; /**< {B} scalar field density parameter */
-  int index_bi_Omega_de; /**< {B} scalar field density parameter */
   int index_bi_theta_phi_scf; /**< {B} scalar field angular variable */
   int index_bi_y_phi_scf; /**< {B} scalar field y_1 */
 
