@@ -3336,7 +3336,7 @@ int input_read_parameters_species(struct file_content * pfc,
     /* First case: tracking condition */
     /* Second case: general initial condition */
     if (pba->scf_parameters[3] > 0.1){
-        pba->Omega_phi_ini_scf = pba->scf_parameters[pba->scf_tuning_index]*pba->Omega0_scf
+        pba->Omega_phi_ini_scf = exp(pba->scf_parameters[pba->scf_tuning_index])*pba->Omega0_scf
         *pow(1.e-56*(pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),1.+0.5/pba->scf_parameters[3]);
         pba->theta_phi_ini_scf = -acosh(1.+2./(3.*pba->scf_parameters[3]));
         pba->y_phi_ini_scf = -3.*sinh(pba->theta_phi_ini_scf);
