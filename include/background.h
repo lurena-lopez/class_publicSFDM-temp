@@ -122,8 +122,6 @@ struct background
   double Omega_phi_ini_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field 2*/
   double theta_phi_ini_scf;       /* Angular internal variable */
   double y_phi_ini_scf; /* Second potential variable normalized */
-//  double phi_ini_scf;      /**< \f$ \phi(t_0) \f$: scalar field initial value */
-//  double phi_prime_ini_scf;/**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
   int scf_parameters_size; /**< size of scf_parameters */
   double varconst_alpha; /**< finestructure constant for varying fundamental constants */
   double varconst_me; /**< electron mass for varying fundamental constants */
