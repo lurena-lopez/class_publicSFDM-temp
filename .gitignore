@@ -6,7 +6,7 @@ class
 *.ini
 libclass.a
 *out
-python/classy.cpp
+python/classy.c
 *.pyc
 python/build/
 *.dSYM
