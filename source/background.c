@@ -478,9 +478,9 @@ int background_functions(
     pvecback[pba->index_bg_theta_phi_scf] = theta_phi; // value of the scalar field theta_phi
     pvecback[pba->index_bg_y_phi_scf] = y1_phi; // value of the scalar field y1_phi
         pvecback[pba->index_bg_rho_scf] = Omega_phi*rho_tot/(1.-Omega_phi); // energy of the scalar field alone
-    pvecback[pba->index_bg_p_scf] = -cosh(theta_phi)*pvecback[pba->index_bg_rho_scf]; // pressure of the scalar field
-    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_rho_scf]*(sinh(theta_phi)*(3.*sinh(theta_phi)+y1_phi)
-                                                                                                            +3.*cosh(theta_phi)*(1.-cosh(theta_phi)));
+    pvecback[pba->index_bg_p_scf] = -cos(theta_phi)*pvecback[pba->index_bg_rho_scf]; // pressure of the scalar field
+    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_rho_scf]*(sin(theta_phi)*(-3.*sin(theta_phi)+y1_phi)
+                                                                                                            +3.*cos(theta_phi)*(1.-cos(theta_phi)));
     rho_tot += pvecback[pba->index_bg_rho_scf];
     p_tot += pvecback[pba->index_bg_p_scf];
     dp_dloga += pvecback[pba->index_bg_p_prime_scf];
@@ -2068,7 +2068,7 @@ int background_solve(
       printf("    -> Omega_scf = %g, wished %g\n",
                  pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_scf]/pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_crit], pba->Omega0_scf);
       printf("    -> 1+w_phi = %1.2e\n",
-                 1.-cosh(pvecback[pba->index_bg_theta_phi_scf]));
+                 1.-cos(pvecback[pba->index_bg_theta_phi_scf]));
       printf("    -> Mass_scf = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n",
                  3.19696e-30*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H],
                  0.5*pvecback[pba->index_bg_y_phi_scf]);
@@ -2624,9 +2624,9 @@ int background_derivs(
     w_tot = pvecback[pba->index_bg_p_tot]/pvecback[pba->index_bg_rho_tot];
 
     dy[pba->index_bi_Omega_phi_scf] = 3.*y[pba->index_bi_Omega_phi_scf]*
-        (w_tot+cosh(y[pba->index_bi_theta_phi_scf]));
+        (w_tot+cos(y[pba->index_bi_theta_phi_scf]));
       
-    dy[pba->index_bi_theta_phi_scf] =-3.*sinh(y[pba->index_bi_theta_phi_scf]) - y[pba->index_bi_y_phi_scf];
+    dy[pba->index_bi_theta_phi_scf] =-3.*sin(y[pba->index_bi_theta_phi_scf]) + y[pba->index_bi_y_phi_scf];
         
     dy[pba->index_bi_y_phi_scf] = 1.5*(1. + w_tot)*y[pba->index_bi_y_phi_scf]
          + y2_phi_scf(pba,y[pba->index_bi_Omega_phi_scf],y[pba->index_bi_theta_phi_scf],y[pba->index_bi_y_phi_scf]);
@@ -2878,7 +2878,7 @@ double y2_phi_scf(struct background *pba,
   double scf_alpha2 = pba->scf_parameters[3];
   
   //General expression for phantom potentials
-  return 0.5*scf_alpha0*Omega_phi*sinh(theta) +
-      scf_alpha1*pow(Omega_phi,0.5)*sinh(0.5*theta)*y1_phi +
-      scf_alpha2*sinh(0.5*theta)*pow(y1_phi,2.)/cosh(0.5*theta);
+  return 0.5*scf_alpha0*Omega_phi*sin(theta) +
+      scf_alpha1*pow(Omega_phi,0.5)*sin(0.5*theta)*y1_phi +
+      scf_alpha2*sin(0.5*theta)*pow(y1_phi,2.)/cos(0.5*theta);
 }
