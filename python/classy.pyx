@@ -1887,6 +1887,58 @@ cdef class Class:
 
         return Om_cdm
 
+    def w_scf(self, z):
+        """
+        w_scf(z)
+
+        Return the cdm density fraction (exactly, the ratio of quantities defined by Class as
+        index_bg_rho_cdm and index_bg_rho_crit in the background module)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        if self.ba.has_scf == True:
+
+            pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+            if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                raise CosmoSevereError(self.ba.error_message)
+
+            w_scf = -np.cos(pvecback[self.ba.index_bg_theta_phi_scf])
+
+            free(pvecback)
+
+        return w_scf
+
+    def log10m_scf(self,z):
+        """
+        log10m_scf
+
+        Return the cdm density fraction (exactly, the ratio of quantities defined by Class as
+        index_bg_rho_cdm and index_bg_rho_crit in the background module)
+
+        """
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        if self.ba.has_scf == True:
+
+            pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+            if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                raise CosmoSevereError(self.ba.error_message)
+
+            log10m_scf = np.log10(3.19696e-30*pvecback[self.ba.index_bg_y_phi_scf]*pvecback[self.ba.index_bg_H])
+
+            free(pvecback)
+
+        return log10m_scf
+
     def Om_ncdm(self, z):
         """
         Omega_ncdm(z)
@@ -2437,6 +2489,10 @@ cdef class Class:
                 value = self.pm.phi_min
             elif name == 'phi_max':
                 value = self.pm.phi_max
+            elif name== 'w0_scf':
+                value = self.w_scf(0)
+            elif name== 'logm_scf':
+                value=self.log10m_scf(0)
             elif name == 'sigma8':
                 self.compute(["fourier"])
                 if (self.pt.has_pk_matter == _FALSE_):
