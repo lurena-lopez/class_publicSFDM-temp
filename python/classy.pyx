@@ -1915,6 +1915,34 @@ cdef class Class:
 
         return w_scf
 
+    def wa_scf(self, z):
+        """
+        wa_scf(z)
+
+        Return the cdm density fraction (exactly, the ratio of quantities defined by Class as
+        index_bg_rho_cdm and index_bg_rho_crit in the background module)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        if self.ba.has_scf == True:
+
+            pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+            if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                raise CosmoSevereError(self.ba.error_message)
+
+            wa_scf = -np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*(3.*np.sin(pvecback[self.ba.index_bg_theta_phi_scf])-pvecback[self.ba.index_bg_y_phi_scf])
+
+            free(pvecback)
+
+        return wa_scf
+
     def log10m_scf(self,z):
         """
         log10m_scf
@@ -2491,6 +2519,8 @@ cdef class Class:
                 value = self.pm.phi_max
             elif name== 'w0_scf':
                 value = self.w_scf(0)
+            elif name== 'wa0_scf':
+                value = self.wa_scf(0)
             elif name== 'logm_scf':
                 value=self.log10m_scf(0)
             elif name == 'sigma8':
