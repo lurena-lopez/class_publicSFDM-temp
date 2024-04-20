@@ -1913,6 +1913,10 @@ cdef class Class:
 
             free(pvecback)
 
+        else:
+                
+            w_scf = 0.
+        
         return w_scf
 
     def wa_scf(self, z):
@@ -1941,6 +1945,10 @@ cdef class Class:
 
             free(pvecback)
 
+        else:
+        
+            wa_scf = 0.
+
         return wa_scf
 
     def log10m_scf(self,z):
@@ -1964,6 +1972,10 @@ cdef class Class:
             log10m_scf = np.log10(3.19696e-30*pvecback[self.ba.index_bg_y_phi_scf]*pvecback[self.ba.index_bg_H])
 
             free(pvecback)
+
+        else:
+        
+            log10m_scf = 0.
 
         return log10m_scf
 
