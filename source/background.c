@@ -2880,5 +2880,5 @@ double y2_phi_scf(struct background *pba,
   //General expression for phantom potentials
   return 0.5*scf_alpha0*Omega_phi*sin(theta) +
       scf_alpha1*pow(Omega_phi,0.5)*sin(0.5*theta)*y1_phi +
-      scf_alpha2*sin(0.5*theta)*pow(y1_phi,2.)/cos(0.5*theta);
+      scf_alpha2*tan(0.5*theta)*pow(y1_phi,2.);
 }

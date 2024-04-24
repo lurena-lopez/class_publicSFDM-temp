@@ -9403,7 +9403,7 @@ int perturbations_derivs(double tau,
         theta_phi_scf = pvecback[pba->index_bg_theta_phi_scf];
         y1_phi_scf = pvecback[pba->index_bg_y_phi_scf];
         k2_over_kJ2 = k2/(a2*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*y1_phi_scf);
-        keff2_over_kJ2 = k2_over_kJ2 - y2_phi_scf(pba,Omega_phi_scf,theta_phi_scf,y1_phi_scf)/y1_phi_scf/sin(theta_phi_scf);
+        keff2_over_kJ2 = k2_over_kJ2 - y2_phi_scf(pba,Omega_phi_scf,theta_phi_scf,y1_phi_scf)/(y1_phi_scf*sin(theta_phi_scf));
         delta0_scf = y[pv->index_pt_delta0_scf];
         delta1_scf = y[pv->index_pt_delta1_scf];
         
