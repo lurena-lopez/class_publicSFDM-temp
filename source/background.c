@@ -2070,8 +2070,11 @@ int background_solve(
       printf("    -> 1+w_phi = %1.2e\n",
                  1.-cos(pvecback[pba->index_bg_theta_phi_scf]));
       printf("    -> Mass_scf = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n",
-                 3.19696e-30*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H],
-                 0.5*pvecback[pba->index_bg_y_phi_scf]);
+                 3.19696e-30*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H]*
+             pow(1.-2.*y2_phi_scf(pba,pvecback[pba->index_bg_Omega_phi_scf],pvecback[pba->index_bg_theta_phi_scf],pvecback[pba->index_bg_y_phi_scf])/pow(pvecback[pba->index_bg_y_phi_scf],2.)/tan(0.5*pvecback[pba->index_bg_theta_phi_scf]),0.5), 0.5*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H]*
+             pow(1.-2.*y2_phi_scf(pba,pvecback[pba->index_bg_Omega_phi_scf],pvecback[pba->index_bg_theta_phi_scf],pvecback[pba->index_bg_y_phi_scf])/pow(pvecback[pba->index_bg_y_phi_scf],2.)/tan(0.5*pvecback[pba->index_bg_theta_phi_scf]),0.5),
+                 0.5*pvecback[pba->index_bg_y_phi_scf])*
+        pow(1.-2.*y2_phi_scf(pba,pvecback[pba->index_bg_Omega_phi_scf],pvecback[pba->index_bg_theta_phi_scf],pvecback[pba->index_bg_y_phi_scf])/pow(pvecback[pba->index_bg_y_phi_scf],2.)/tan(0.5*pvecback[pba->index_bg_theta_phi_scf]),0.5);
       printf("    -> alpha_0 = %g, alpha_1 =%g, alpha_2 =%g\n",
                  pba->scf_parameters[1],pba->scf_parameters[2],pba->scf_parameters[3]);
     }
