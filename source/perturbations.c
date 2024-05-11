@@ -9406,18 +9406,19 @@ int perturbations_derivs(double tau,
         keff2_over_kJ2 = k2_over_kJ2 - y2_phi_scf(pba,Omega_phi_scf,theta_phi_scf,y1_phi_scf)/(y1_phi_scf*sin(theta_phi_scf));
         delta0_scf = y[pv->index_pt_delta0_scf];
         delta1_scf = y[pv->index_pt_delta1_scf];
+        //printf("k2=%g, k2J=%g\n",a2,pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]);
         
       /** - ----> field value */
 
-        dy[pv->index_pt_delta0_scf] = 0.; /*-a_prime_over_a*((3.*sin(theta_phi_scf)+k2_over_kJ2*(1.-cos(theta_phi_scf)))*delta1_scf
+        dy[pv->index_pt_delta0_scf] = -a_prime_over_a*((3.*sin(theta_phi_scf)+k2_over_kJ2*(1.-cos(theta_phi_scf)))*delta1_scf
                                                        -k2_over_kJ2*sin(theta_phi_scf)*delta0_scf)
-                                                       -metric_continuity*(1.-cos(theta_phi_scf)); //metric_continuity = h'/2 */
+                                                       -metric_continuity*(1.-cos(theta_phi_scf)); //metric_continuity = h'/2
 
       /** - ----> Klein Gordon equation */
 
-        dy[pv->index_pt_delta1_scf] = 0.; /*-a_prime_over_a*((3.*cos(theta_phi_scf)+keff2_over_kJ2*sin(theta_phi_scf))*delta1_scf
+        dy[pv->index_pt_delta1_scf] = -a_prime_over_a*((3.*cos(theta_phi_scf)+keff2_over_kJ2*sin(theta_phi_scf))*delta1_scf
                                                        -keff2_over_kJ2*(1.+cos(theta_phi_scf))*delta0_scf)
-                                                       -metric_continuity*sin(theta_phi_scf); //metric_continuity = h'/2 */
+                                                       -metric_continuity*sin(theta_phi_scf); //metric_continuity = h'/2
 
     }
 
