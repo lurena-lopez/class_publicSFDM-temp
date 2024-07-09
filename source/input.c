@@ -3345,7 +3345,8 @@ int input_read_parameters_species(struct file_content * pfc,
         //printf("shooting = %-15g \n",pba->scf_parameters[pba->scf_tuning_index]);
     }
     else{
-        pba->y_phi_ini_scf = pba->scf_parameters[0]*1.e-28*pow((pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),0.5);
+        //pba->y_phi_ini_scf = pba->scf_parameters[0]*1.e-28*pow((pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),0.5);
+        pba->y_phi_ini_scf = 2.*pba->scf_parameters[0]*1.e-28/pow(pba->Omega0_g+pba->Omega0_ur,0.5);
         pba->Omega_phi_ini_scf = exp(pba->scf_parameters[pba->scf_tuning_index])*pow(pba->y_phi_ini_scf,2.0);
         pba->theta_phi_ini_scf=0.2*pba->y_phi_ini_scf;
     }

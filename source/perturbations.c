@@ -9410,15 +9410,15 @@ int perturbations_derivs(double tau,
         
       /** - ----> field value */
 
-        dy[pv->index_pt_delta0_scf] = -a_prime_over_a*((3.*sin(theta_phi_scf)+k2_over_kJ2*(1.-cos(theta_phi_scf)))*delta1_scf
+        dy[pv->index_pt_delta0_scf] = 0.; /*-a_prime_over_a*((3.*sin(theta_phi_scf)+k2_over_kJ2*(1.-cos(theta_phi_scf)))*delta1_scf
                                                        -k2_over_kJ2*sin(theta_phi_scf)*delta0_scf)
-                                                       -metric_continuity*(1.-cos(theta_phi_scf)); //metric_continuity = h'/2
+                                                       -metric_continuity*(1.-cos(theta_phi_scf)); //metric_continuity = h'/2 */
 
       /** - ----> Klein Gordon equation */
 
-        dy[pv->index_pt_delta1_scf] = -a_prime_over_a*((3.*cos(theta_phi_scf)+keff2_over_kJ2*sin(theta_phi_scf))*delta1_scf
+        dy[pv->index_pt_delta1_scf] = 0.; /*-a_prime_over_a*((3.*cos(theta_phi_scf)+keff2_over_kJ2*sin(theta_phi_scf))*delta1_scf
                                                        -keff2_over_kJ2*(1.+cos(theta_phi_scf))*delta0_scf)
-                                                       -metric_continuity*sin(theta_phi_scf); //metric_continuity = h'/2
+                                                       -metric_continuity*sin(theta_phi_scf); //metric_continuity = h'/2 */
 
     }
 

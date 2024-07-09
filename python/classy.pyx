@@ -1909,7 +1909,7 @@ cdef class Class:
             if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                 raise CosmoSevereError(self.ba.error_message)
 
-            w_scf = -np.cos(pvecback[self.ba.index_bg_theta_phi_scf])
+            w_scf = -np.cos(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))
 
             free(pvecback)
 
@@ -1941,7 +1941,8 @@ cdef class Class:
             if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                 raise CosmoSevereError(self.ba.error_message)
 
-            wa_scf = -np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*(3.*np.sin(pvecback[self.ba.index_bg_theta_phi_scf])-pvecback[self.ba.index_bg_y_phi_scf])
+            wa_scf = -np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))*(3.*np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))
+		-pvecback[self.ba.index_bg_y_phi_scf])
 
             free(pvecback)
 
@@ -1969,7 +1970,8 @@ cdef class Class:
             if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                 raise CosmoSevereError(self.ba.error_message)
 
-            log10m_scf = np.log10(3.19696e-30*pvecback[self.ba.index_bg_y_phi_scf]*pvecback[self.ba.index_bg_H])
+##            log10m_scf = np.log10(3.19696e-30*pvecback[self.ba.index_bg_y_phi_scf]*pvecback[self.ba.index_bg_H])
+            log10m_scf = pvecback[self.ba.index_bg_y_phi_scf]
 
             free(pvecback)
 
