@@ -2135,6 +2135,112 @@ cdef class Class:
 
         return (Om_cdm[0] if np.isscalar(z) else Om_cdm)
 
+    def w_scf(self, z):
+        """
+        w_scf(z)
+
+        Return the scf equation of state
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        self.compute(["background"])
+
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        zarr = np.atleast_1d(z).astype(np.float64)
+
+        w_scf = np.zeros_like(zarr)
+
+        if self.ba.has_scf == True:
+
+          pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+          for iz, redshift in enumerate(zarr):
+
+              if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                  free(pvecback) #manual free due to error
+                  raise CosmoSevereError(self.ba.error_message)
+
+              w_scf[iz] = -np.cos(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))
+
+          free(pvecback)
+
+        return (w_scf[0] if np.isscalar(z) else w_scf)
+
+    def wa_scf(self, z):
+        """
+        wa_scf(z)
+
+        Return the derivative of the scf equation of state 
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        self.compute(["background"])
+
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        zarr = np.atleast_1d(z).astype(np.float64)
+
+        wa_scf = np.zeros_like(zarr)
+
+        if self.ba.has_scf == True:
+
+          pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+          for iz, redshift in enumerate(zarr):
+
+              if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                  free(pvecback) #manual free due to error
+                  raise CosmoSevereError(self.ba.error_message)
+
+              wa_scf[iz] = -np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))*(3.*np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))
+                -pvecback[self.ba.index_bg_y_phi_scf])
+
+          free(pvecback)
+
+        return (wa_scf[0] if np.isscalar(z) else wa_scf)
+
+    def log10m_scf(self, z):
+        """
+        log10m_scf(z)
+
+        Return the scf equation of state 
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        self.compute(["background"])
+
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        zarr = np.atleast_1d(z).astype(np.float64)
+
+        log10m_scf = np.zeros_like(zarr)
+
+        if self.ba.has_scf == True:
+
+          pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+          for iz, redshift in enumerate(zarr):
+
+              if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                  free(pvecback) #manual free due to error
+                  raise CosmoSevereError(self.ba.error_message)
+
+              log10m_scf[iz] = pvecback[self.ba.index_bg_y_phi_scf]
+
+          free(pvecback)
+
+        return (log10m_scf[0] if np.isscalar(z) else log10m_scf)
+
     def Om_ncdm(self, z):
         """
         Omega_ncdm(z)
@@ -2593,6 +2699,12 @@ cdef class Class:
                 value = self.ba.Omega0_fld
             elif name == 'Omega0_scf':
                 value = self.ba.Omega0_scf
+            elif name== 'w0_scf':
+                value = self.w_scf(0)
+            elif name== 'wa0_scf':
+                value = self.wa_scf(0)
+            elif name== 'logm_scf':
+                value=self.log10m_scf(0)
             elif name == 'age':
                 value = self.ba.age
             elif name == 'conformal_age':

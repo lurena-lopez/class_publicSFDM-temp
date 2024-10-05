@@ -68,8 +68,12 @@ cdef extern from "class.h":
         int index_bg_rho_cdm
         int index_bg_rho_ncdm1
         int index_bg_rho_crit
+        int index_bg_Omega_phi_scf
+        int index_bg_theta_phi_scf
+        int index_bg_y_phi_scf
         short has_cdm
         short  has_ncdm
+        short  has_scf
         int N_ncdm
         double T_cmb
         double h
