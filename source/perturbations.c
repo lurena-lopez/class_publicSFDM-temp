@@ -7055,22 +7055,22 @@ int perturbations_total_stress_energy(
 
       if (ppt->gauge == synchronous){
         delta_rho_scf = y[ppw->pv->index_pt_delta0_scf]*ppw->pvecback[pba->index_bg_rho_scf];
-        delta_p_scf = ppw->pvecback[pba->index_bg_rho_scf]*(y[ppw->pv->index_pt_delta1_scf]*sin(ppw->pvecback[pba->index_bg_theta_phi_scf])
-                                                              -y[ppw->pv->index_pt_delta0_scf]*cos(ppw->pvecback[pba->index_bg_theta_phi_scf]));
+        delta_p_scf = ppw->pvecback[pba->index_bg_rho_scf]*(y[ppw->pv->index_pt_delta1_scf]*sin_scf(pba,ppw->pvecback[pba->index_bg_theta_scf])
+                                                              -y[ppw->pv->index_pt_delta0_scf]*cos(ppw->pvecback[pba->index_bg_theta_scf]));
       }
       else{
         /* equation for psi */
         psi = y[ppw->pv->index_pt_phi] - 4.5 * (a2/k/k) * ppw->rho_plus_p_shear;
 
         delta_rho_scf = y[ppw->pv->index_pt_delta0_scf]*ppw->pvecback[pba->index_bg_rho_scf];
-        delta_p_scf = ppw->pvecback[pba->index_bg_rho_scf]*(y[ppw->pv->index_pt_delta1_scf]*sin(ppw->pvecback[pba->index_bg_theta_phi_scf])
-                                                                -y[ppw->pv->index_pt_delta0_scf]*cos(ppw->pvecback[pba->index_bg_theta_phi_scf]));
+        delta_p_scf = ppw->pvecback[pba->index_bg_rho_scf]*(y[ppw->pv->index_pt_delta1_scf]*sin_scf(pba,ppw->pvecback[pba->index_bg_theta_scf])
+                                                                -y[ppw->pv->index_pt_delta0_scf]*cos_scf(pba,ppw->pvecback[pba->index_bg_theta_scf]));
       }
 
       ppw->delta_rho += delta_rho_scf;
 
-      ppw->rho_plus_p_theta +=  k*k*ppw->pvecback[pba->index_bg_rho_scf]*(-y[ppw->pv->index_pt_delta0_scf]*sin(ppw->pvecback[pba->index_bg_theta_phi_scf])
-                                                                            +y[ppw->pv->index_pt_delta1_scf]*(1. - cos(ppw->pvecback[pba->index_bg_theta_phi_scf])))/(a*ppw->pvecback[pba->index_bg_H]*ppw->pvecback[pba->index_bg_y_phi_scf]);
+      ppw->rho_plus_p_theta +=  k*k*ppw->pvecback[pba->index_bg_rho_scf]*(-y[ppw->pv->index_pt_delta0_scf]*sin_scf(pba,ppw->pvecback[pba->index_bg_theta_scf])
+                                                                            +y[ppw->pv->index_pt_delta1_scf]*(1. - cos_scf(pba,ppw->pvecback[pba->index_bg_theta_scf])))/(a*ppw->pvecback[pba->index_bg_H]*ppw->pvecback[pba->index_bg_y1_scf]);
 
       ppw->delta_p += delta_p_scf;
 
@@ -7769,7 +7769,7 @@ int perturbations_sources(
     if (ppt->has_source_delta_scf == _TRUE_) {
       if (ppt->gauge == synchronous){
         delta_rho_scf = y[ppw->pv->index_pt_delta0_scf]
-          + 3.*a_prime_over_a*(1.-cos(pvecback[pba->index_bg_theta_phi_scf]))*theta_over_k2; // N-body gauge correction
+          + 3.*a_prime_over_a*(1.-cos_scf(pba,pvecback[pba->index_bg_theta_scf]))*theta_over_k2; // N-body gauge correction
       }
       else{
         delta_rho_scf =  y[ppw->pv->index_pt_delta0_scf]
@@ -7883,9 +7883,9 @@ int perturbations_sources(
     /* theta_scf */
     if (ppt->has_source_theta_scf == _TRUE_) {
 
-      rho_plus_p_theta_scf = k*k*ppw->pvecback[pba->index_bg_rho_scf]*(-y[ppw->pv->index_pt_delta0_scf]*sin(ppw->pvecback[pba->index_bg_theta_phi_scf])
-                                                                       +y[ppw->pv->index_pt_delta1_scf]*(1.-cos(ppw->pvecback[pba->index_bg_theta_phi_scf])))
-                                                                                                           /(a*ppw->pvecback[pba->index_bg_H]*ppw->pvecback[pba->index_bg_y_phi_scf]);
+      rho_plus_p_theta_scf = k*k*ppw->pvecback[pba->index_bg_rho_scf]*(-y[ppw->pv->index_pt_delta0_scf]*sin_scf(pba,ppw->pvecback[pba->index_bg_theta_scf])
+                                                                       +y[ppw->pv->index_pt_delta1_scf]*(1.-cos_scf(pba,ppw->pvecback[pba->index_bg_theta_scf])))
+                                                                                                           /(a*ppw->pvecback[pba->index_bg_H]*ppw->pvecback[pba->index_bg_y1_scf]);
 
       _set_source_(ppt->index_tp_theta_scf) = rho_plus_p_theta_scf/(pvecback[pba->index_bg_rho_scf]+pvecback[pba->index_bg_p_scf])
         + theta_shift; // N-body gauge correction
@@ -8026,7 +8026,7 @@ int perturbations_print_variables(double tau,
   double delta_idr=0., theta_idr=0., shear_idr=0.;
   double delta_rho_scf=0., rho_plus_p_theta_scf=0.;
   double delta_scf=0., theta_scf=0.;
-  double theta_phi_scf=0., y_phi_scf=0.;
+  double theta_phi_scf=0., y1_phi_scf=0.;
   double delta0_scf=0., delta1_scf=0.,rho_scf=0.;
   /** - ncdm sector begins */
   int n_ncdm;
@@ -8301,8 +8301,8 @@ int perturbations_print_variables(double tau,
 
     if (pba->has_scf == _TRUE_){
         
-      theta_phi_scf = ppw->pvecback[pba->index_bg_theta_phi_scf];
-      y_phi_scf = ppw->pvecback[pba->index_bg_y_phi_scf];
+      theta_phi_scf = ppw->pvecback[pba->index_bg_theta_scf];
+      y1_phi_scf = ppw->pvecback[pba->index_bg_y1_scf];
       rho_scf = ppw->pvecback[pba->index_bg_rho_scf];
       delta0_scf = y[ppw->pv->index_pt_delta0_scf];
       delta1_scf = y[ppw->pv->index_pt_delta1_scf];
@@ -8315,10 +8315,10 @@ int perturbations_print_variables(double tau,
            //- 1./a2*pow(ppw->pvecback[pba->index_bg_phi_prime_scf],2)*ppw->pvecmetric[ppw->index_mt_psi]);
       }
 
-      rho_plus_p_theta_scf =  k*k*rho_scf*(-delta0_scf*sin(theta_phi_scf)+delta1_scf*(1.-cos(theta_phi_scf)))/(a*H*y_phi_scf);
+      rho_plus_p_theta_scf =  k*k*rho_scf*(-delta0_scf*sin_scf(pba,theta_phi_scf)+delta1_scf*(1.-cos_scf(pba,theta_phi_scf)))/(a*H*y1_phi_scf);
 
       delta_scf = y[ppw->pv->index_pt_delta0_scf];
-      theta_scf = k*k*(delta1_scf*(1.-cos(theta_phi_scf))-delta0_scf*sin(theta_phi_scf))/(a*H*y_phi_scf);
+      theta_scf = k*k*(delta1_scf*(1.-cos_scf(pba,theta_phi_scf))-delta0_scf*sin_scf(pba,theta_phi_scf))/(a*H*y1_phi_scf);
 
     }
 
