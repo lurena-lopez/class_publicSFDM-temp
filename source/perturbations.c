@@ -8677,6 +8677,9 @@ int perturbations_derivs(double tau,
 
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
+    
+  /* for use with scalar field  */
+  double alpha_scf,theta_scf,y1_scf,omega_scf,delta_scf,delta1_scf;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -9280,28 +9283,30 @@ int perturbations_derivs(double tau,
     /** - ---> scalar field (scf) */
 
     if (pba->has_scf == _TRUE_) {
-        /**
-        Omega_phi_scf = pvecback[pba->index_bg_Omega_phi_scf];
-        theta_phi_scf = pvecback[pba->index_bg_theta_phi_scf];
-        y1_phi_scf = pvecback[pba->index_bg_y_phi_scf];
-        k2_over_kJ2 = k2/(a2*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*y1_phi_scf);
-        keff2_over_kJ2 = k2_over_kJ2 - y2_phi_scf(pba,Omega_phi_scf,theta_phi_scf,y1_phi_scf)/(y1_phi_scf*sin(theta_phi_scf));
-        delta0_scf = y[pv->index_pt_delta0_scf];
-        delta1_scf = y[pv->index_pt_delta1_scf]; **/
-        //printf("k2=%g, k2J=%g\n",a2,pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]);
+        alpha_scf = pvecback[pba->index_bg_alpha_scf];
+        theta_scf = pvecback[pba->index_bg_theta_scf];
+        y1_scf = pvecback[pba->index_bg_y1_scf];
+        omega_scf = k2/(pow(a*ppw->pvecback[pba->index_bg_H],2.)*y1_scf);
+        delta_scf = y[pv->index_pt_delta0_scf];
+        delta1_scf = y[pv->index_pt_delta1_scf];
+
+        /** - ----> see arXiv:17xxxx */
+        /** - ----> sfdm density contrast */
         
-      /** - ----> field value */
+        dy[pv->index_pt_delta0_scf] = -a_prime_over_a*((3.*sin_scf(pba,theta_scf)+omega_scf*(1.-cos_scf(pba,theta_scf)))*delta1_scf
+                                                           -omega_scf*sin_scf(pba,theta_scf)*delta_scf)
+          -metric_continuity*(1.-cos_scf(pba,theta_scf)); //metric_continuity = h'/2;
 
-        dy[pv->index_pt_delta0_scf] = 0.; /*-a_prime_over_a*((3.*sin(theta_phi_scf)+k2_over_kJ2*(1.-cos(theta_phi_scf)))*delta1_scf
-                                                       -k2_over_kJ2*sin(theta_phi_scf)*delta0_scf)
-                                                       -metric_continuity*(1.-cos(theta_phi_scf)); //metric_continuity = h'/2 */
+        /** - ----> sfdm delta1 */
 
-      /** - ----> Klein Gordon equation */
-
-        dy[pv->index_pt_delta1_scf] = 0.; /*-a_prime_over_a*((3.*cos(theta_phi_scf)+keff2_over_kJ2*sin(theta_phi_scf))*delta1_scf
-                                                       -keff2_over_kJ2*(1.+cos(theta_phi_scf))*delta0_scf)
-                                                       -metric_continuity*sin(theta_phi_scf); //metric_continuity = h'/2 */
-
+          dy[pv->index_pt_delta1_scf] = -a_prime_over_a*((3.*cos_scf(pba,theta_scf)+
+                                                           (omega_scf-0.5*pba->scf_parameters[1]*exp(2.*alpha_scf)/
+                                                            (y1_scf*pow(1.-pba->scf_parameters[1]*exp(2.*alpha_scf)*(1.+cos_scf(pba,theta_scf))/pow(y1_scf,2.),0.5)))*
+                                                         sin_scf(pba,theta_scf))*delta1_scf
+                                                          -(omega_scf-0.5*pba->scf_parameters[1]*exp(2.*alpha_scf)/
+                                                            (y1_scf*pow(1.-pba->scf_parameters[1]*exp(2.*alpha_scf)*(1.+cos_scf(pba,theta_scf))/pow(y1_scf,2.),0.5)))
+                                                          *(1.+cos_scf(pba,theta_scf))*delta_scf)
+          -metric_continuity*sin_scf(pba,theta_scf); //metric_continuity = h'/2
     }
 
     /** - ---> ultra-relativistic neutrino/relics (ur) */
