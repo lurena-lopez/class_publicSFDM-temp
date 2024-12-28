@@ -2950,6 +2950,9 @@ int perturbations_solve(
   int * previous_approx;
 
   int n_ncdm,is_early_enough;
+    
+  /* Related to scf: is early enough? */
+  double m_scf_over_H;
 
   /* function pointer to ODE evolver and names of possible evolvers */
 
@@ -3088,6 +3091,12 @@ int perturbations_solve(
 
         is_early_enough = _FALSE_;
     }
+      
+      if (pba->has_scf == _TRUE_) {
+          m_scf_over_H = 0.5*ppw->pvecback[pba->index_bg_y1_scf];
+          if (m_scf_over_H > 1.e-2)
+              is_early_enough = _FALSE_;
+      }
 
     if (is_early_enough == _TRUE_)
       tau_lower = tau_mid;
