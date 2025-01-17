@@ -382,6 +382,8 @@ cdef class Class:
         # with the error message from the faulty module of CLASS.
         if "background" in level:
             if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
+                self.ncp.add("background")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
             self.ncp.add("background")
@@ -389,6 +391,8 @@ cdef class Class:
         if "thermodynamics" in level:
             if thermodynamics_init(&(self.pr), &(self.ba),
                                    &(self.th)) == _FAILURE_:
+                self.ncp.add("thermodynamics")
+                self.allocated = True 
                 self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
@@ -396,6 +400,8 @@ cdef class Class:
         if "perturb" in level:
             if perturbations_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
+                self.ncp.add("perturb")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
@@ -403,6 +409,8 @@ cdef class Class:
         if "primordial" in level:
             if primordial_init(&(self.pr), &(self.pt),
                                &(self.pm)) == _FAILURE_:
+                self.ncp.add("primordial")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
@@ -410,6 +418,8 @@ cdef class Class:
         if "fourier" in level:
             if fourier_init(&self.pr, &self.ba, &self.th,
                               &self.pt, &self.pm, &self.fo) == _FAILURE_:
+                self.ncp.add("fourier")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.fo.error_message)
             self.ncp.add("fourier")
@@ -417,6 +427,8 @@ cdef class Class:
         if "transfer" in level:
             if transfer_init(&(self.pr), &(self.ba), &(self.th),
                              &(self.pt), &(self.fo), &(self.tr)) == _FAILURE_:
+                self.ncp.add("transfer")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
@@ -425,6 +437,8 @@ cdef class Class:
             if harmonic_init(&(self.pr), &(self.ba), &(self.pt),
                             &(self.pm), &(self.fo), &(self.tr),
                             &(self.hr)) == _FAILURE_:
+                self.ncp.add("harmonic")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.hr.error_message)
             self.ncp.add("harmonic")
@@ -432,6 +446,8 @@ cdef class Class:
         if "lensing" in level:
             if lensing_init(&(self.pr), &(self.pt), &(self.hr),
                             &(self.fo), &(self.le)) == _FAILURE_:
+                self.ncp.add("lensing")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
@@ -439,6 +455,8 @@ cdef class Class:
         if "distortions" in level:
             if distortions_init(&(self.pr), &(self.ba), &(self.th),
                                 &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
+                self.ncp.add("distortions")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sd.error_message)
             self.ncp.add("distortions")
