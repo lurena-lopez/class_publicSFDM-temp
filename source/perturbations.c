@@ -9302,20 +9302,20 @@ int perturbations_derivs(double tau,
         /** - ----> see arXiv:17xxxx */
         /** - ----> sfdm density contrast */
         
-        dy[pv->index_pt_delta0_scf] = -a_prime_over_a*((3.*sin_scf(pba,theta_scf)+omega_scf*(1.-cos_scf(pba,theta_scf)))*delta1_scf
-                                                           -omega_scf*sin_scf(pba,theta_scf)*delta_scf)
-          -metric_continuity*(1.-cos_scf(pba,theta_scf)); //metric_continuity = h'/2;
+        dy[pv->index_pt_delta0_scf] = 0.; // -a_prime_over_a*((3.*sin_scf(pba,theta_scf)+omega_scf*(1.-cos_scf(pba,theta_scf)))*delta1_scf
+          //                                                 -omega_scf*sin_scf(pba,theta_scf)*delta_scf)
+          //-metric_continuity*(1.-cos_scf(pba,theta_scf)); //metric_continuity = h'/2;
 
         /** - ----> sfdm delta1 */
 
-          dy[pv->index_pt_delta1_scf] = -a_prime_over_a*((3.*cos_scf(pba,theta_scf)+
-                                                           (omega_scf-0.5*pba->scf_parameters[1]*exp(2.*alpha_scf)/
-                                                            (y1_scf*pow(1.-pba->scf_parameters[1]*exp(2.*alpha_scf)*(1.+cos_scf(pba,theta_scf))/pow(y1_scf,2.),0.5)))*
-                                                         sin_scf(pba,theta_scf))*delta1_scf
-                                                          -(omega_scf-0.5*pba->scf_parameters[1]*exp(2.*alpha_scf)/
-                                                            (y1_scf*pow(1.-pba->scf_parameters[1]*exp(2.*alpha_scf)*(1.+cos_scf(pba,theta_scf))/pow(y1_scf,2.),0.5)))
-                                                          *(1.+cos_scf(pba,theta_scf))*delta_scf)
-          -metric_continuity*sin_scf(pba,theta_scf); //metric_continuity = h'/2
+        dy[pv->index_pt_delta1_scf] = 0.; //-a_prime_over_a*((3.*cos_scf(pba,theta_scf)+
+         //                                                  (omega_scf-0.5*pba->scf_parameters[1]*exp(2.*alpha_scf)/
+         //                                                   (y1_scf*pow(1.-pba->scf_parameters[1]*exp(2.*alpha_scf)*(1.+cos_scf(pba,theta_scf))/pow(y1_scf,2.),0.5)))*
+          //                                               sin_scf(pba,theta_scf))*delta1_scf
+           //                                               -(omega_scf-0.5*pba->scf_parameters[1]*exp(2.*alpha_scf)/
+           //                                                 (y1_scf*pow(1.-pba->scf_parameters[1]*exp(2.*alpha_scf)*(1.+cos_scf(pba,theta_scf))/pow(y1_scf,2.),0.5)))
+           //                                               *(1.+cos_scf(pba,theta_scf))*delta_scf)
+          //-metric_continuity*sin_scf(pba,theta_scf); //metric_continuity = h'/2
     }
 
     /** - ---> ultra-relativistic neutrino/relics (ur) */
