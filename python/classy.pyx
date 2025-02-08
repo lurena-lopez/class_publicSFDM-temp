@@ -2181,8 +2181,8 @@ cdef class Class:
               if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                   free(pvecback) #manual free due to error
                   raise CosmoSevereError(self.ba.error_message)
-
-              w_scf[iz] = -np.cos(pvecback[self.ba.index_bg_theta_scf])
+              else:
+                  w_scf[iz] = -np.cos(pvecback[self.ba.index_bg_theta_scf])
 
           free(pvecback)
 
@@ -2216,8 +2216,8 @@ cdef class Class:
               if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                   free(pvecback) #manual free due to error
                   raise CosmoSevereError(self.ba.error_message)
-
-              wa_scf[iz] = -np.sin(pvecback[self.ba.index_bg_theta_scf])*(3.*np.sin(pvecback[self.ba.index_bg_theta_scf])
+              else:
+                  wa_scf[iz] = -np.sin(pvecback[self.ba.index_bg_theta_scf])*(3.*np.sin(pvecback[self.ba.index_bg_theta_scf])
                 - pow(pow(pvecback[self.ba.index_bg_y1_scf],2.)
                 - self.ba.scf_parameters[1]*exp(2.*pvecback[self.ba.index_bg_alpha_scf])
                 *(1.+np.cos(pvecback[self.ba.index_bg_theta_scf])),0.5))
@@ -2225,6 +2225,47 @@ cdef class Class:
           free(pvecback)
 
         return (wa_scf[0] if np.isscalar(z) else wa_scf)
+
+    def phi_scf(self, z):
+        """
+        phi_scf(z)
+
+        Return the value of phi_scf
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        self.compute(["background"])
+
+        cdef int last_index #junk
+        cdef double * pvecback
+    
+        zarr = np.atleast_1d(z).astype(np.float64)
+    
+        phi_scf = np.zeros_like(zarr)
+    
+        if self.ba.has_scf == True:
+    
+          pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+          for iz, redshift in enumerate(zarr):
+
+              if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
+                  free(pvecback) #manual free due to error
+                  raise CosmoSevereError(self.ba.error_message)
+              else:
+                  if self.ba.scf_parameters[1] == 0.:
+                      phi_scf[iz] = -np.sqrt(6.)*exp(pvecback[self.ba.index_bg_alpha_scf])*np.cos(0.5*pvecback[self.ba.index_bg_theta_scf])/pvecback[self.ba.index_bg_y1_scf]
+                  else:
+                      ini_misalignment_scf = np.exp(-pvecback[self.ba.index_bg_alpha_scf])*pow(pow(pvecback[self.ba.index_bg_y1_scf],2.)
+                      - self.ba.scf_parameters[1]*np.exp(2.*pvecback[self.ba.index_bg_alpha_scf])
+                      *(1.+np.cos(pvecback[self.ba.index_bg_theta_scf])),0.5)/pow(2.*self.ba.scf_parameters[1],0.5);
+                      phi_scf[iz] = 2.*np.arctan(ini_misalignment_scf)*180./np.pi
+    
+          free(pvecback)
+
+        return (phi_scf[0] if np.isscalar(z) else phi_scf)    
 
     def Om_ncdm(self, z):
         """
@@ -2688,6 +2729,10 @@ cdef class Class:
                 value = self.w_scf(0)
             elif name== 'wa0_scf':
                 value = self.wa_scf(0)
+            elif name== 'phi0_scf':
+                value = self.phi_scf(0)
+            elif name== 'phi_scf_ini':
+                value = self.phi_scf(1.e13)
             elif name == 'age':
                 value = self.ba.age
             elif name == 'conformal_age':
