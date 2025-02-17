@@ -2732,7 +2732,7 @@ cdef class Class:
             elif name== 'phi0_scf':
                 value = self.phi_scf(0)
             elif name== 'phi_scf_ini':
-                value = self.phi_scf(1.e13)
+                value = self.phi_scf(9.e13)
             elif name == 'age':
                 value = self.ba.age
             elif name == 'conformal_age':
