@@ -397,7 +397,7 @@ int background_functions(
   /* fluid's time-dependent equation of state parameter */
   double w_fld, dw_over_da, integral_fld;
   /* scalar field quantities */
-  double Omega_phi, theta_phi, y1_phi;
+  double alpha_scf, theta_scf, y1_scf;
   /* Since we only know a_prime_over_a after we have rho_tot,
      it is not possible to simply sum up p_tot_prime directly.
      Instead we sum up dp_dloga = p_prime/a_prime_over_a. The formula is
@@ -471,16 +471,15 @@ int background_functions(
 
   /* Scalar field */
   if (pba->has_scf == _TRUE_) {
-    Omega_phi = pvecback_B[pba->index_bi_Omega_phi_scf];
-    theta_phi = pvecback_B[pba->index_bi_theta_phi_scf];
-    y1_phi = pvecback_B[pba->index_bi_y_phi_scf];
-    pvecback[pba->index_bg_Omega_phi_scf] = Omega_phi; // value of the scalar field Omega_phi
-    pvecback[pba->index_bg_theta_phi_scf] = theta_phi; // value of the scalar field theta_phi
-    pvecback[pba->index_bg_y_phi_scf] = y1_phi; // value of the scalar field y1_phi
-        pvecback[pba->index_bg_rho_scf] = Omega_phi*rho_tot/(1.-Omega_phi); // energy of the scalar field alone
-    pvecback[pba->index_bg_p_scf] = -cos(theta_phi)*pvecback[pba->index_bg_rho_scf]; // pressure of the scalar field
-    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_rho_scf]*(sin(theta_phi)*(-3.*sin(theta_phi)+y1_phi)
-                                                                                                            +3.*cos(theta_phi)*(1.-cos(theta_phi)));
+    alpha_scf = pvecback_B[pba->index_bi_alpha_scf];
+    theta_scf = pvecback_B[pba->index_bi_theta_scf];
+    y1_scf = pvecback_B[pba->index_bi_y1_scf];
+    pvecback[pba->index_bg_alpha_scf] = alpha_scf; // value of the scalar field Omega_phi
+    pvecback[pba->index_bg_theta_scf] = theta_scf; // value of the scalar field theta_phi
+    pvecback[pba->index_bg_y1_scf] = y1_scf; // value of the scalar field y1_phi
+        pvecback[pba->index_bg_rho_scf] = exp(2.*alpha_scf)*rho_tot/(1.-exp(2.*alpha_scf)); // energy of the scalar field alone
+    pvecback[pba->index_bg_p_scf] = -cos_scf(pba,theta_scf)*pvecback[pba->index_bg_rho_scf]; // pressure of the scalar field
+    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_rho_scf]*(sin_scf(pba,theta_scf)*(-3.*sin_scf(pba,theta_scf) + y1_scf) + 3.*cos_scf(pba,theta_scf)*(1.-cos_scf(pba,theta_scf)));
     rho_tot += pvecback[pba->index_bg_rho_scf];
     p_tot += pvecback[pba->index_bg_p_scf];
     dp_dloga += pvecback[pba->index_bg_p_prime_scf];
@@ -1059,9 +1058,9 @@ int background_indices(
   class_define_index(pba->index_bg_rho_dr,pba->has_dr,index_bg,1);
 
   /* - indices for scalar field */
-  class_define_index(pba->index_bg_Omega_phi_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_theta_phi_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_y_phi_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_alpha_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_theta_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_y1_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_p_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_p_prime_scf,pba->has_scf,index_bg,1);
@@ -1159,9 +1158,9 @@ int background_indices(
   class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
-  class_define_index(pba->index_bi_Omega_phi_scf,pba->has_scf,index_bi,1);
-  class_define_index(pba->index_bi_theta_phi_scf,pba->has_scf,index_bi,1);
-  class_define_index(pba->index_bi_y_phi_scf,pba->has_scf,index_bi,1);
+  class_define_index(pba->index_bi_alpha_scf,pba->has_scf,index_bi,1);
+  class_define_index(pba->index_bi_theta_scf,pba->has_scf,index_bi,1);
+  class_define_index(pba->index_bi_y1_scf,pba->has_scf,index_bi,1);
 
   /* End of {B} variables */
   pba->bi_B_size = index_bi;
@@ -1881,6 +1880,8 @@ int background_solve(
   double comoving_radius=0.;
   /* conformal distance in Mpc (equal to comoving radius in flat case) */
   double conformal_distance;
+  /* Initial misalignment of scf */
+  double ini_misalignment_scf=0.,fin_misalignment_scf=0.;
 
   /* evolvers */
   extern int evolver_rk(EVOLVER_PROTOTYPE);
@@ -2067,19 +2068,27 @@ int background_solve(
       printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
     if (pba->has_scf == _TRUE_) {
-      printf(" -> Scalar field details:\n");
-      printf("    -> Omega_scf = %g, wished %g\n",
-                 pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_scf]/pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_crit], pba->Omega0_scf);
-      printf("    -> 1+w_phi = %1.2e\n",
-                 1.-cos(pvecback[pba->index_bg_theta_phi_scf]));
-      printf("    -> Mass_scf = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n",
-                 3.19696e-30*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H]*
-             pow(1.-2.*y2_phi_scf(pba,pvecback[pba->index_bg_Omega_phi_scf],pvecback[pba->index_bg_theta_phi_scf],pvecback[pba->index_bg_y_phi_scf])/pow(pvecback[pba->index_bg_y_phi_scf],2.)/tan(0.5*pvecback[pba->index_bg_theta_phi_scf]),0.5), 0.5*pvecback[pba->index_bg_y_phi_scf]*pvecback[pba->index_bg_H]*
-             pow(1.-2.*y2_phi_scf(pba,pvecback[pba->index_bg_Omega_phi_scf],pvecback[pba->index_bg_theta_phi_scf],pvecback[pba->index_bg_y_phi_scf])/pow(pvecback[pba->index_bg_y_phi_scf],2.)/tan(0.5*pvecback[pba->index_bg_theta_phi_scf]),0.5),
-                 0.5*pvecback[pba->index_bg_y_phi_scf])*
-        pow(1.-2.*y2_phi_scf(pba,pvecback[pba->index_bg_Omega_phi_scf],pvecback[pba->index_bg_theta_phi_scf],pvecback[pba->index_bg_y_phi_scf])/pow(pvecback[pba->index_bg_y_phi_scf],2.)/tan(0.5*pvecback[pba->index_bg_theta_phi_scf]),0.5);
-      printf("    -> alpha_0 = %g, alpha_1 =%g, alpha_2 =%g\n",
-                 pba->scf_parameters[1],pba->scf_parameters[2],pba->scf_parameters[3]);
+        printf(" -> Scalar field details:\n");
+        printf(" -> Omega_scf = %g, wished %g\n", exp(2.*pvecback[pba->index_bg_alpha_scf]), pba->Omega0_scf);
+        printf(" -> Mass_scf = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n", 3.19696e-30*pvecback[pba->index_bg_y1_scf]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_scf]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_scf]);
+        printf("    -> wished = %1.2e [eV]\n", pow(10.,pba->scf_parameters[0]));
+        printf(" -> lambda_scf = %1.2e\n",pba->scf_parameters[1]);
+        if (pba->scf_parameters[1] > 0.){
+          ini_misalignment_scf = pba->y1_ini_scf*exp(-pba->alpha_ini_scf)*
+          pow(1.-pba->scf_parameters[1]*exp(2.*pba->alpha_ini_scf)*(1.+cos_scf(pba,pba->theta_ini_scf))/pow(pba->y1_ini_scf,2.),0.5)/pow(2.*pba->scf_parameters[1],0.5);
+          fin_misalignment_scf = pvecback[pba->index_bg_y1_scf]*exp(-pvecback[pba->index_bg_alpha_scf])*
+            pow(1.-pba->scf_parameters[1]*exp(2.*pvecback[pba->index_bg_alpha_scf])*(1.+cos_scf(pba,pvecback[pba->index_bg_theta_scf]))/pow(pvecback[pba->index_bg_y1_scf],2.),0.5)/pow(2.*pba->scf_parameters[1],0.5);
+          printf("    Initial field misalignment:\n");
+          printf("     -> phi_ini/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(ini_misalignment_scf), 2.*atan(ini_misalignment_scf)*180./_PI_);
+          printf("    Final field misalignment:\n");
+          printf("     -> phi_ini/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(fin_misalignment_scf), 2.*atan(fin_misalignment_scf)*180./_PI_);
+          printf("    Cosmic field excursion:\n");
+          printf("     -> Delta phi/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(fin_misalignment_scf)-2.*atan(ini_misalignment_scf), 2.*atan(fin_misalignment_scf)*180./_PI_ - 2.*atan(ini_misalignment_scf)*180./_PI_);
+         }
+         printf("    Final equation of state w0_scf and derivative wa0_scf:\n");
+         printf("     -> w0_scf = %1.2e\n",-cos(pvecback[pba->index_bg_theta_scf]));
+         printf("     -> wa0_scf = %1.2e\n",-sin(pvecback[pba->index_bg_theta_scf])*(3.*sin(pvecback[pba->index_bg_theta_scf])
+                       -pvecback[pba->index_bg_y1_scf]*pow(1.-pba->scf_parameters[1]*exp(2.*pvecback[pba->index_bg_alpha_scf])*(1.+cos(pvecback[pba->index_bg_theta_scf]))/pow(pvecback[pba->index_bg_y1_scf],2.),0.5)));
     }
     if (pba->has_lambda == _TRUE_) {
       printf("    -> Omega_Lambda = %g, wished %g\n",
@@ -2263,9 +2272,9 @@ int background_initial_conditions(
    * - is rho_ur all there is early on?
    */
   if (pba->has_scf == _TRUE_) {
-    pvecback_integration[pba->index_bi_Omega_phi_scf] = pba->Omega_phi_ini_scf;
-    pvecback_integration[pba->index_bi_theta_phi_scf] = pba->theta_phi_ini_scf;
-    pvecback_integration[pba->index_bi_y_phi_scf] = pba->y_phi_ini_scf;
+    pvecback_integration[pba->index_bi_alpha_scf] = pba->alpha_ini_scf;
+    pvecback_integration[pba->index_bi_theta_scf] = pba->theta_ini_scf;
+    pvecback_integration[pba->index_bi_y1_scf] = pba->y1_ini_scf;
   }
 
   /* Infer pvecback from pvecback_integration */
@@ -2437,9 +2446,9 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_prime_scf",pba->has_scf);
-  class_store_columntitle(titles,"Omega_phi_scf",pba->has_scf);
-  class_store_columntitle(titles,"theta_phi_scf",pba->has_scf);
-  class_store_columntitle(titles,"y_phi_scf",pba->has_scf);
+  class_store_columntitle(titles,"alpha_scf",pba->has_scf);
+  class_store_columntitle(titles,"theta_scf",pba->has_scf);
+  class_store_columntitle(titles,"y1_scf",pba->has_scf);
 
   class_store_columntitle(titles,"(.)rho_tot",_TRUE_);
   class_store_columntitle(titles,"(.)p_tot",_TRUE_);
@@ -2508,9 +2517,9 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_prime_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_Omega_phi_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_theta_phi_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_y_phi_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_alpha_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_theta_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_y1_scf],pba->has_scf,storeidx);
 
     class_store_double(dataptr,pvecback[pba->index_bg_rho_tot],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_tot],_TRUE_,storeidx);
@@ -2627,15 +2636,13 @@ int background_derivs(
   }
 
   if (pba->has_scf == _TRUE_) {
-    w_tot = pvecback[pba->index_bg_p_tot]/pvecback[pba->index_bg_rho_tot];
-
-    dy[pba->index_bi_Omega_phi_scf] = 3.*y[pba->index_bi_Omega_phi_scf]*
-        (w_tot+cos(y[pba->index_bi_theta_phi_scf]));
+      w_tot = pvecback[pba->index_bg_p_tot]/pvecback[pba->index_bg_rho_tot];
+      /** - Scalar field dark matter EoM */
+      dy[pba->index_bi_alpha_scf] = 1.5*(w_tot + cos_scf(pba,y[pba->index_bi_theta_scf]));
       
-    dy[pba->index_bi_theta_phi_scf] =-3.*sin(y[pba->index_bi_theta_phi_scf]) + y[pba->index_bi_y_phi_scf];
-        
-    dy[pba->index_bi_y_phi_scf] = 1.5*(1. + w_tot)*y[pba->index_bi_y_phi_scf]
-         + y2_phi_scf(pba,y[pba->index_bi_Omega_phi_scf],y[pba->index_bi_theta_phi_scf],y[pba->index_bi_y_phi_scf]);
+      dy[pba->index_bi_theta_scf] = -3.*sin_scf(pba,y[pba->index_bi_theta_scf]) + y[pba->index_bi_y1_scf]*pow(1. - pba->scf_parameters[1]*exp(2.*y[pba->index_bi_alpha_scf])*(1. + cos_scf(pba,y[pba->index_bi_theta_scf]))/pow(y[pba->index_bi_y1_scf],2.),0.5);
+      
+      dy[pba->index_bi_y1_scf] = 1.5*(1. + w_tot)*y[pba->index_bi_y1_scf];
   }
 
   return _SUCCESS_;
@@ -2871,20 +2878,4 @@ double sin_scf(struct background *pba,
   double theta_thresh = 1.e2;
     double theta_tol = 1.;//1.e-2;
   return 0.5*(1.-tanh(theta_tol*(theta_phi*theta_phi-theta_thresh*theta_thresh)))*sin(theta_phi);
-}
-
-/** Second potential variable y2 for scalar field */
-double y2_phi_scf(struct background *pba,
-          double Omega_phi,
-          double theta,
-          double y1_phi
-          ) {
-  double scf_alpha0 = pba->scf_parameters[1];
-  double scf_alpha1 = pba->scf_parameters[2];
-  double scf_alpha2 = pba->scf_parameters[3];
-  
-  //General expression for phantom potentials
-  return 0.5*scf_alpha0*Omega_phi*sin(theta) +
-      scf_alpha1*pow(Omega_phi,0.5)*sin(0.5*theta)*y1_phi +
-      scf_alpha2*tan(0.5*theta)*pow(y1_phi,2.);
 }

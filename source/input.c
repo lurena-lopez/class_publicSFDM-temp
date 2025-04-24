@@ -1225,22 +1225,9 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = 1./a_decay/ba.h/ba.h;
       break;
     case Omega_scf:
-      /* *
-       * This guess is arbitrary, something nice using WKB should be implemented.
-       * Version 2 uses a fit
-       * xguess[index_guess] = 1.77835*pow(ba.Omega0_scf,-2./7.);
-       * dxdy[index_guess] = -0.5081*pow(ba.Omega0_scf,-9./7.)`;
-       * Version 3: use attractor solution
-       * */
-      if (ba.scf_tuning_index == 0){
-        xguess[index_guess] = sqrt(3.0/ba.Omega0_scf);
-        dxdy[index_guess] = -0.5*sqrt(3.0)*pow(ba.Omega0_scf,-1.5);
-      }
-      else{
-        /* Default: take the passed value as xguess and set dxdy to 1. */
-        xguess[index_guess] = ba.scf_parameters[ba.scf_tuning_index];
-        dxdy[index_guess] = 1.;
-      }
+      /* Default: take the passed value as xguess and set dxdy to 1. */
+      xguess[index_guess] = ba.scf_parameters[ba.scf_tuning_index];
+      dxdy[index_guess] = 0.1;
       break;
     case omega_ini_dcdm:
       Omega0_dcdmdr = 1./(ba.h*ba.h);
@@ -2337,862 +2324,864 @@ int input_read_parameters_species(struct file_content * pfc,
                                   struct perturbations * ppt,
                                   int input_verbose,
                                   ErrorMsg errmsg){
-
-  /** Summary: */
-
-  /** - Define local variables */
-  int flag1, flag2, flag3;
-  double param1, param2, param3;
-  char string1[_ARGUMENT_LENGTH_MAX_];
-  int fileentries;
-  int N_ncdm=0, n, entries_read;
-  double rho_ncdm;
-  double scf_lambda;
-  double fnu_factor;
-  double Omega_tot;
-  double sigma_B; // Stefan-Boltzmann constant
-  double stat_f_idr = 7./8.;
-  double f_cdm=1., f_idm=0.;
-  short has_m_budget = _FALSE_, has_cdm_userdefined = _FALSE_;
-  double Omega_m_remaining = 0.;
-
-
-  sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
-
-  /** 1) Omega_0_g (photons) and T_cmb */
-  /* Read */
-  class_call(parser_read_double(pfc,"T_cmb",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"Omega_g",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_g",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
-  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
-             errmsg,
-             "You can only enter one of 'T_cmb', 'Omega_g' or 'omega_g'.");
-  /* Complete set of parameters
+    
+    /** Summary: */
+    
+    /** - Define local variables */
+    int flag1, flag2, flag3;
+    double param1, param2, param3;
+    char string1[_ARGUMENT_LENGTH_MAX_];
+    int fileentries;
+    int N_ncdm=0, n, entries_read;
+    double rho_ncdm;
+    //double scf_lambda;
+    double theta_scf=0., y1_scf=0., alpha_scf=0., aosc_scf=0.;
+    double masstohubble_ini_scf=0.;
+    double fnu_factor;
+    double Omega_tot;
+    double sigma_B; // Stefan-Boltzmann constant
+    double stat_f_idr = 7./8.;
+    double f_cdm=1., f_idm=0.;
+    short has_m_budget = _FALSE_, has_cdm_userdefined = _FALSE_;
+    double Omega_m_remaining = 0.;
+    
+    
+    sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
+    
+    /** 1) Omega_0_g (photons) and T_cmb */
+    /* Read */
+    class_call(parser_read_double(pfc,"T_cmb",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"Omega_g",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_g",&param3,&flag3,errmsg),
+               errmsg,
+               errmsg);
+    class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+               errmsg,
+               "You can only enter one of 'T_cmb', 'Omega_g' or 'omega_g'.");
+    /* Complete set of parameters
      Note:  Omega0_g = rho_g/rho_c0, each of them expressed in [Kg/(m s^2)]
      rho_g = (4 sigma_B/c) T^4
      rho_c0 = 3 c^2 H_0^2/(8 \pi G) */
-  if (class_none_of_three(flag1,flag2,flag3)){
-    pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.))/(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
-  }
-  else {
-    if (flag1 == _TRUE_){
-      pba->Omega0_g = (4.*sigma_B/_c_*pow(param1,4.))/(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
-      pba->T_cmb=param1;
+    if (class_none_of_three(flag1,flag2,flag3)){
+        pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.))/(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
     }
-    if (flag2 == _TRUE_){
-      pba->Omega0_g = param2;
-      pba->T_cmb = pow(pba->Omega0_g*(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
+    else {
+        if (flag1 == _TRUE_){
+            pba->Omega0_g = (4.*sigma_B/_c_*pow(param1,4.))/(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+            pba->T_cmb=param1;
+        }
+        if (flag2 == _TRUE_){
+            pba->Omega0_g = param2;
+            pba->T_cmb = pow(pba->Omega0_g*(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
+        }
+        if (flag3 == _TRUE_){
+            pba->Omega0_g = param3/pba->h/pba->h;
+            pba->T_cmb = pow(pba->Omega0_g*(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
+        }
     }
-    if (flag3 == _TRUE_){
-      pba->Omega0_g = param3/pba->h/pba->h;
-      pba->T_cmb = pow(pba->Omega0_g*(3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)/(4.*sigma_B/_c_),0.25);
-    }
-  }
-  class_test(pba->Omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
-
-
-  /** 2) Omega_0_b (baryons) */
-  /* Read */
-  class_call(parser_read_double(pfc,"Omega_b",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_b",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "You can only enter one of 'Omega_b' or 'omega_b'.");
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    pba->Omega0_b = param1;
-  }
-  if (flag2 == _TRUE_){
-    pba->Omega0_b = param2/pba->h/pba->h;
-  }
-  class_test(pba->Omega0_b<0,errmsg,"You cannot set the baryon density to negative values.");
-
-
-  /** 3) Omega_0_ur (ultra-relativistic species / massless neutrino) */
-  /* Read */
-  class_call(parser_read_double(pfc,"N_ur",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compability code END */
-  class_call(parser_read_double(pfc,"Omega_ur",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_ur",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
-             errmsg,
-             "You can only enter one of 'N_ur', 'Omega_ur' or 'omega_ur'.");
-  /* Complete set of parameters assuming as default value N_eff=3.044
-     (see 2008.01074 and 2012.02726. This value is more accurate than
-     the previous default value of 3.046) */
-  if (class_none_of_three(flag1,flag2,flag3)) {
-    pba->Omega0_ur = 3.044*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-  }
-  else {
-    if (flag1 == _TRUE_) {
-      pba->Omega0_ur = param1*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-    }
-    if (flag2 == _TRUE_) {
-      pba->Omega0_ur = param2;
-    }
-    if (flag3 == _TRUE_) {
-      pba->Omega0_ur = param3/pba->h/pba->h;
-    }
-  }
-  class_test(pba->Omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values. You might have input a total Neff smaller than what your massive neutrinos require minimally (around 1.02 * N_ncdm * deg_ncdm).");
-
-  /** 3.a) Case of non-standard properties */
-  /* Read */
-  class_call(parser_read_double(pfc,"ceff2_ur",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"cvis2_ur",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    ppt->three_ceff2_ur = 3.*param1;
-  }
-  if (flag2 == _TRUE_){
-    ppt->three_cvis2_ur = 3.*param2;
-  }
-
-
-  /** 4) Omega_0_cdm (CDM) */
-  /* Read */
-  class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "You can only enter one of 'Omega_cdm' or 'omega_cdm'.");
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    pba->Omega0_cdm = param1;
-    has_cdm_userdefined = _TRUE_;
-  }
-  if (flag2 == _TRUE_){
-    pba->Omega0_cdm = param2/pba->h/pba->h;
-    has_cdm_userdefined = _TRUE_;
-  }
-  class_test(pba->Omega0_cdm<0,errmsg, "You cannot set the cold dark matter density to negative values.");
-
-  /** 4) (Second part) Omega_0_m (total non-relativistic) */
-  class_call(parser_read_double(pfc,"Omega_m",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_m",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Read */
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "You can only enter one of 'Omega_m' or 'omega_m'.");
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    Omega_m_remaining = param1;
-    has_m_budget = _TRUE_;
-  }
-  if (flag2 == _TRUE_){
-    Omega_m_remaining = param2/pba->h/pba->h;
-    has_m_budget = _TRUE_;
-  }
-  class_test(Omega_m_remaining<0,errmsg, "You cannot set the total matter density to negative values.");
-  class_test(has_cdm_userdefined == _TRUE_ && has_m_budget == _TRUE_, errmsg, "If you want to use 'Omega_m' you cannot fix 'Omega_cdm' simultaneously. Please remove either 'Omega_cdm' or 'Omega_m' from the input file.");
-  if (has_m_budget == _TRUE_) {
-    class_test(Omega_m_remaining < pba->Omega0_b, errmsg, "Too much energy density from matter species. At this point only %e is left for Omega_m, but requested 'Omega_b = %e'",Omega_m_remaining, pba->Omega0_b);
-    Omega_m_remaining-= pba->Omega0_b;
-  }
-
-  /** 5) Non-cold relics (ncdm) */
-  /** 5.a) Number of non-cold relics */
-  /* Read */
-  class_read_int("N_ncdm",N_ncdm);
-  /* Complete set of parameters */
-  if (N_ncdm > 0){
-    pba->N_ncdm = N_ncdm;
-    if (ppt->gauge == synchronous){
-      ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
-    }
-    if (ppt->gauge == newtonian){
-      ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
-    }
-
-    /** 5.b) Check if filenames for interpolation tables are given */
+    class_test(pba->Omega0_g<0,errmsg,"You cannot set the photon density to negative values.");
+    
+    
+    /** 2) Omega_0_b (baryons) */
     /* Read */
-    class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
-    /* Complete set of parameters */
-    for (n=0,fileentries=0; n<N_ncdm; n++){
-      if (pba->got_files[n] == _TRUE_){
-        fileentries++;
-      }
-    }
-    if (fileentries > 0) {
-
-      /** 5.b.1) Check if filenames for interpolation tables are given */
-      /* Read */
-      class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",&entries_read,&(pba->ncdm_psd_files),&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Test */
-      class_test(flag1 == _FALSE_,errmsg,
-                 "Entry 'use_ncdm_files' is found, but no corresponding 'ncdm_psd_filenames' were found.");
-      class_test(entries_read != fileentries,errmsg,
-                 "Number of filenames found (%d) does not match number of _TRUE_ values in use_ncdm_files (%d).",
-                 entries_read,fileentries);
-    }
-
-    /** 5.c) (optional) p.s.d.-parameters */
-    /* Read */
-    class_call(parser_read_list_of_doubles(pfc,"ncdm_psd_parameters",&entries_read,&(pba->ncdm_psd_parameters),&flag1,errmsg),
+    class_call(parser_read_double(pfc,"Omega_b",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
-
-    /** 5.d) Mass and/or Omega of each ncdm species */
-    /* Read */
-    class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0,N_ncdm);
-    for (n=0; n<N_ncdm; n++){
-      class_test(pba->m_ncdm_in_eV[n]<0,
-                 errmsg,
-                 "You entered a negative non-CDM mass m_ncdm[%d], which makes no sense. This error was not caught in previous CLASS versions because the mass is always squared in the code, so CLASS returned the exact same results form +m_ncdm and -m_ncdm. If you want to define an 'effective negative neutrino mass' in the sense of e.g. 2405.00836 or 2407.10965, you can implement it in a python script following e.g. eq.(3) of 2407.10965",n);
-    }
-
-    class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0,N_ncdm);
-    // the name M_ncdm is borrowed temporarily to store omega_ncdm
-    class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0,N_ncdm);
-    for (n=0; n<N_ncdm; n++){
-      if (pba->M_ncdm[n]!=0.0){
-        /* Test */
-        class_test(pba->Omega0_ncdm[n]!=0,errmsg,
-                   "You can only enter one of 'Omega_ncdm' or 'omega_ncdm' for ncdm species %d.",n);
-        /* Complete set of parameters: if the user passed either
-           Omega_ncdm or omega_ncdm, now it's stored anyway as
-           Omega_0_ncdm */
-        pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
-        // the name M_ncdm is now available for its real destination
-      }
-      /* Set default value
-         this is the right place for passing the default value of the mass
-         (all parameters must have a default value; most of them are defined
-         in input_default_params, but the ncdm mass is a bit special and
-         there is no better place for setting its default value). We put an
-         arbitrary value m << 10^-3 eV, i.e. the ultra-relativistic limit. */
-      if ((pba->Omega0_ncdm[n]==0.0) && (pba->m_ncdm_in_eV[n]==0.0)) {
-        pba->m_ncdm_in_eV[n]=1.e-5;
-      }
-    }
-
-    /** 5.e) Temperatures */
-    /* Read */
-    class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
-
-    /** 5.f) Chemical potentials */
-    /* Read */
-    class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default,N_ncdm);
-
-    /** 5.g) Degeneracy of each ncdm species */
-    /* Read */
-    class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default,N_ncdm);
-
-    /** 5.h) Quadrature modes, 0 is qm_auto */
-    /* Read */
-    class_call(parser_read_list_of_integers(pfc, "Quadrature strategy", &entries_read, &(pba->ncdm_quadrature_strategy), &flag1, errmsg),
-               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
-    if (flag1 == _TRUE_) {
-      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Quadrature strategy, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
-    }
-    else {
-      class_read_list_of_integers_or_default("ncdm_quadrature_strategy", pba->ncdm_quadrature_strategy, 0, N_ncdm);
-    }
-
-    /** 5.h.1) qmax, if relevant */
-    /* Read */
-    class_call(parser_read_list_of_doubles(pfc, "Maximum_q", &entries_read, &(pba->ncdm_qmax), &flag1, errmsg),
-               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
-    if (flag1 == _TRUE_) {
-      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Maximum_q, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
-    }
-    else {
-      class_read_list_of_doubles_or_default("ncdm_maximum_q", pba->ncdm_qmax, 15, N_ncdm);
-    }
-
-    /** 5.h.2) Number of momentum bins */
-    class_call(parser_read_list_of_integers(pfc, "Number of momentum bins", &entries_read, &(pba->ncdm_input_q_size), &flag1, errmsg),
-               errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
-    if (flag1 == _TRUE_) {
-      class_test(entries_read != N_ncdm, errmsg, "Number of entries in Number of momentum bins, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
-    }
-    else {
-      class_read_list_of_integers_or_default("ncdm_N_momentum_bins", pba->ncdm_input_q_size, 150, N_ncdm);
-    }
-
-    /** Last step of 5) (i.e. NCDM) -- Calculate the masses and momenta */
-    class_call(background_ncdm_init(ppr,pba),
-               pba->error_message,
-               errmsg);
-    /* Complete set of parameters
-       We must calculate M from omega or vice versa if one of them is missing.
-       If both are present, we must update the degeneracy parameter to
-       reflect the implicit normalization of the distribution function. */
-    for (n=0; n < N_ncdm; n++){
-      if (pba->m_ncdm_in_eV[n] != 0.0){
-        /* Case of only mass or mass and Omega/omega: */
-        pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->T_cmb;
-        class_call(background_ncdm_momenta(pba->q_ncdm_bg[n],
-                                           pba->w_ncdm_bg[n],
-                                           pba->q_size_ncdm_bg[n],
-                                           pba->M_ncdm[n],
-                                           pba->factor_ncdm[n],
-                                           0.,
-                                           NULL,
-                                           &rho_ncdm,
-                                           NULL,
-                                           NULL,
-                                           NULL),
-                   pba->error_message,
-                   errmsg);
-        if (pba->Omega0_ncdm[n] == 0.0){
-          pba->Omega0_ncdm[n] = rho_ncdm/pba->H0/pba->H0;
-        }
-        else{
-          fnu_factor = (pba->H0*pba->H0*pba->Omega0_ncdm[n]/rho_ncdm);
-          pba->factor_ncdm[n] *= fnu_factor;
-          /* dlnf0dlnq is already computed, but it is independent of any
-             normalization of f0. We don't need the factor anymore, but we
-             store it nevertheless */
-          pba->deg_ncdm[n] *=fnu_factor;
-        }
-      }
-      else{
-        /* Case of only Omega/omega: */
-        class_call(background_ncdm_M_from_Omega(ppr,pba,n),
-                   pba->error_message,
-                   errmsg);
-        pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->T_cmb;
-      }
-      pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
-    }
-
-  }
-  class_test(pba->Omega0_ncdm_tot<0,errmsg,"You cannot set the NCDM density to negative values.");
-  if (has_m_budget == _TRUE_) {
-    class_test(Omega_m_remaining < pba->Omega0_ncdm_tot, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_ncdm = %e' (summed over all species)",Omega_m_remaining, pba->Omega0_ncdm_tot);
-    Omega_m_remaining-= pba->Omega0_ncdm_tot;
-  }
-
-  /** 6) Omega_0_k (effective fractional density of curvature) */
-  /* Read */
-  class_read_double("Omega_k",pba->Omega0_k);
-  /* Complete set of parameters */
-  pba->K = -pba->Omega0_k*pow(pba->H0,2);
-  if (pba->K > 0.){
-    pba->sgnK = 1;
-  }
-  else if (pba->K < 0.){
-    pba->sgnK = -1;
-  }
-
-
-  /* 7) ** ADDITIONAL SPECIES ** --> Add your species here */
-
-  /** 7.1) Decaying DM into DR */
-  /** 7.1.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
-  /* Read */
-  class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_dcdmdr",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "You can only enter one of 'Omega_dcdmdr' or 'omega_dcdmdr'.");
-
-  /* ---> if user passes directly the density of dcdmdr */
-  if (flag1 == _TRUE_)
-    pba->Omega0_dcdmdr = param1;
-  if (flag2 == _TRUE_)
-    pba->Omega0_dcdmdr = param2/pba->h/pba->h;
-  class_test(pba->Omega0_dcdmdr<0,errmsg,"You cannot set the dcdmdr density to negative values.");
-
-  /** 7.1.b) Omega_ini_dcdm or omega_ini_dcdm */
-  /* Read */
-  class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "You can only enter one of 'Omega_ini_dcdm' or 'omega_ini_dcdm'.");
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    pba->Omega_ini_dcdm = param1;
-  }
-  if (flag2 == _TRUE_){
-    pba->Omega_ini_dcdm = param2/pba->h/pba->h;
-  }
-  class_test(pba->Omega_ini_dcdm<0,errmsg,"You cannot set the initial dcdm density to negative values.");
-
-  if (pba->Omega0_dcdmdr > 0 || (pba->Omega_ini_dcdm > 0.)) {
-
-    /** 7.1.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
-    /* Read */
-    class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),                          // [km/(s Mpc)]
-               errmsg,
-               errmsg);
-    class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),                            // [s]
+    class_call(parser_read_double(pfc,"omega_b",&param2,&flag2,errmsg),
                errmsg,
                errmsg);
     /* Test */
     class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
                errmsg,
-               "In input file, you can only enter one of Gamma_dcdm or tau_dcdm, choose one");
+               "You can only enter one of 'Omega_b' or 'omega_b'.");
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
-      pba->Gamma_dcdm = param1*(1.e3/_c_);                                                          // [Mpc]
-      pba->tau_dcdm = _Mpc_over_m_*1e-3/param1;                                                     // [s]
+        pba->Omega0_b = param1;
     }
     if (flag2 == _TRUE_){
-      pba->Gamma_dcdm = _Mpc_over_m_/(param2*_c_);                                                  // [Mpc]
-      pba->tau_dcdm = param2;                                                                       // [s]
+        pba->Omega0_b = param2/pba->h/pba->h;
     }
+    class_test(pba->Omega0_b<0,errmsg,"You cannot set the baryon density to negative values.");
+    
+    
+    /** 3) Omega_0_ur (ultra-relativistic species / massless neutrino) */
+    /* Read */
+    class_call(parser_read_double(pfc,"N_ur",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Compability code END */
+    class_call(parser_read_double(pfc,"Omega_ur",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_ur",&param3,&flag3,errmsg),
+               errmsg,
+               errmsg);
     /* Test */
-    class_test(pba->tau_dcdm<0.,
+    class_test(class_at_least_two_of_three(flag1,flag2,flag3),
                errmsg,
-               "You need to enter a lifetime for the decaying DM 'tau_dcdm > 0.'");
-    class_test(pba->Gamma_dcdm<0.,
-               errmsg,
-               "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
-  }
-  if (has_m_budget == _TRUE_) {
-    class_test(Omega_m_remaining < pba->Omega0_dcdmdr, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_dcdmdr = %e'",Omega_m_remaining, pba->Omega0_dcdmdr);
-    Omega_m_remaining-= pba->Omega0_dcdmdr;
-  }
-
-  /** 7.2) Multi-interacting dark matter (idm) */
-  /** 7.2.1) Global parameters for all interacting Dark Matter components */
-
-  /** 7.2.1.a) Amount of interacting dark matter*/
-  /* Read fraction or density */
-  class_call(parser_read_double(pfc,"Omega_idm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_idm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"f_idm",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
-  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
-             errmsg,
-             "In input file, you can only enter one of {Omega_idm, omega_idm, f_idm}, choose one");
-
-  /* ---> if user passes directly the density of idm */
-  if (flag1 == _TRUE_)
-    pba->Omega0_idm = param1;
-  if (flag2 == _TRUE_)
-    pba->Omega0_idm = param2/pba->h/pba->h;
-  if (flag3 == _TRUE_)
-    f_idm = param3;
-
-  /* ---> if user passes density of idm as a fraction of the CDM one */
-  /* Find Omega_idm from Omega_cdm and f_idm */
-  if (flag3 == _TRUE_) {
-    class_test((f_idm < 0.) || (f_idm > 1.),
-               errmsg,
-               "The fraction of interacting DM must be between 0 and 1, you asked for f_idm=%e",param3);
-
-    /* Test if there is enough dark matter left to be converted into idm */
-    class_test(f_idm > f_cdm,
-               errmsg,
-               "There is not enough cold dark matter left (f_cdm = %.10e) that should be treated as idm, is the sum of the {f_idm=%.10e} parameters less or equal to 1?", f_cdm, f_idm);
-
-    f_cdm -= f_idm;
-  }
-
-  /** 7.2.1.b) Mass of interacting dark matter*/
-  /* Read */
-  if (pba->Omega0_idm > 0.  || f_idm > 0) {
-    class_read_double("m_idm",pth->m_idm);
-
-    class_test(pth->m_idm <= 0.,
-               errmsg,
-               "m_idm must be positive.");
-    class_test(pth->m_idm < 1.e6,
-               errmsg,
-               "Note that the idm formalism assumes the DM to be cold. You have chosen a low mass of m_idm=%e, which is beyond the regime in which the code has been tested.", pth->m_idm);
-
-    ppt->has_idm_soundspeed = _TRUE_;
-
-    class_read_flag("idm_soundspeed",ppt->has_idm_soundspeed);
-  }
-
-  /** 7.2.2) Dark Matter interacting with Dark Radiation, ETHOS-parametrization/NADM parametrization, see explanatory.ini */
-
-  /** 7.2.2.a) Amount of idr  */
-  /* Read */
-  class_call(parser_read_double(pfc,"N_idr",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"N_dg",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"xi_idr",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
-  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
-             errmsg,
-             "In input file, you can only enter one of {N_idr, N_dg, xi_idr}, choose one");
-
-  /** 7.2.2.b) stat_f_idr  */
-  class_read_double("stat_f_idr",stat_f_idr);
-
-  if (flag1 == _TRUE_) {
-    pba->T_idr = pow(param1/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
-    if (input_verbose > 1)
-      printf("You passed N_idr = N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param1, pba->T_idr/pba->T_cmb);
-  }
-  else if (flag2 == _TRUE_) {
-    pba->T_idr = pow(param2/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
-    if (input_verbose > 2)
-      printf("You passed N_dg = N_idr = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
-  }
-  else if (flag3 == _TRUE_) {
-    pba->T_idr = param3 * pba->T_cmb;
-    if (input_verbose > 1)
-      printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", param3, stat_f_idr*pow(param3,4.)/(7./8.)*pow(11./4.,(4./3.)));
-  }
-  if (flag1 == _TRUE_ || flag2 == _TRUE_ || flag3 == _TRUE_)
-    pba->Omega0_idr = stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
-
-  /** 7.2.2.c) idm_dr coupling */
-  /* Read */
-  if (pba->Omega0_idm > 0. || f_idm > 0) {
-    class_call(parser_read_double(pfc,"a_idm_dr",&param1,&flag1,errmsg),
+               "You can only enter one of 'N_ur', 'Omega_ur' or 'omega_ur'.");
+    /* Complete set of parameters assuming as default value N_eff=3.044
+     (see 2008.01074 and 2012.02726. This value is more accurate than
+     the previous default value of 3.046) */
+    if (class_none_of_three(flag1,flag2,flag3)) {
+        pba->Omega0_ur = 3.044*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+    }
+    else {
+        if (flag1 == _TRUE_) {
+            pba->Omega0_ur = param1*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+        }
+        if (flag2 == _TRUE_) {
+            pba->Omega0_ur = param2;
+        }
+        if (flag3 == _TRUE_) {
+            pba->Omega0_ur = param3/pba->h/pba->h;
+        }
+    }
+    class_test(pba->Omega0_ur<0,errmsg,"You cannot set the density of ultra-relativistic relics (dark radiation/neutrinos) to negative values. You might have input a total Neff smaller than what your massive neutrinos require minimally (around 1.02 * N_ncdm * deg_ncdm).");
+    
+    /** 3.a) Case of non-standard properties */
+    /* Read */
+    class_call(parser_read_double(pfc,"ceff2_ur",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
-    /* Deprecated input parameter, read for backwards compatibility) */
-    class_call(parser_read_double(pfc,"a_dark",&param2,&flag2,errmsg),
+    class_call(parser_read_double(pfc,"cvis2_ur",&param2,&flag2,errmsg),
                errmsg,
                errmsg);
-    class_call(parser_read_double(pfc,"Gamma_0_nadm",&param3,&flag3,errmsg),
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+        ppt->three_ceff2_ur = 3.*param1;
+    }
+    if (flag2 == _TRUE_){
+        ppt->three_cvis2_ur = 3.*param2;
+    }
+    
+    
+    /** 4) Omega_0_cdm (CDM) */
+    /* Read */
+    class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "You can only enter one of 'Omega_cdm' or 'omega_cdm'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+        pba->Omega0_cdm = param1;
+        has_cdm_userdefined = _TRUE_;
+    }
+    if (flag2 == _TRUE_){
+        pba->Omega0_cdm = param2/pba->h/pba->h;
+        has_cdm_userdefined = _TRUE_;
+    }
+    class_test(pba->Omega0_cdm<0,errmsg, "You cannot set the cold dark matter density to negative values.");
+    
+    /** 4) (Second part) Omega_0_m (total non-relativistic) */
+    class_call(parser_read_double(pfc,"Omega_m",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_m",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Read */
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "You can only enter one of 'Omega_m' or 'omega_m'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+        Omega_m_remaining = param1;
+        has_m_budget = _TRUE_;
+    }
+    if (flag2 == _TRUE_){
+        Omega_m_remaining = param2/pba->h/pba->h;
+        has_m_budget = _TRUE_;
+    }
+    class_test(Omega_m_remaining<0,errmsg, "You cannot set the total matter density to negative values.");
+    class_test(has_cdm_userdefined == _TRUE_ && has_m_budget == _TRUE_, errmsg, "If you want to use 'Omega_m' you cannot fix 'Omega_cdm' simultaneously. Please remove either 'Omega_cdm' or 'Omega_m' from the input file.");
+    if (has_m_budget == _TRUE_) {
+        class_test(Omega_m_remaining < pba->Omega0_b, errmsg, "Too much energy density from matter species. At this point only %e is left for Omega_m, but requested 'Omega_b = %e'",Omega_m_remaining, pba->Omega0_b);
+        Omega_m_remaining-= pba->Omega0_b;
+    }
+    
+    /** 5) Non-cold relics (ncdm) */
+    /** 5.a) Number of non-cold relics */
+    /* Read */
+    class_read_int("N_ncdm",N_ncdm);
+    /* Complete set of parameters */
+    if (N_ncdm > 0){
+        pba->N_ncdm = N_ncdm;
+        if (ppt->gauge == synchronous){
+            ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
+        }
+        if (ppt->gauge == newtonian){
+            ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
+        }
+        
+        /** 5.b) Check if filenames for interpolation tables are given */
+        /* Read */
+        class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
+        /* Complete set of parameters */
+        for (n=0,fileentries=0; n<N_ncdm; n++){
+            if (pba->got_files[n] == _TRUE_){
+                fileentries++;
+            }
+        }
+        if (fileentries > 0) {
+            
+            /** 5.b.1) Check if filenames for interpolation tables are given */
+            /* Read */
+            class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",&entries_read,&(pba->ncdm_psd_files),&flag1,errmsg),
+                       errmsg,
+                       errmsg);
+            /* Test */
+            class_test(flag1 == _FALSE_,errmsg,
+                       "Entry 'use_ncdm_files' is found, but no corresponding 'ncdm_psd_filenames' were found.");
+            class_test(entries_read != fileentries,errmsg,
+                       "Number of filenames found (%d) does not match number of _TRUE_ values in use_ncdm_files (%d).",
+                       entries_read,fileentries);
+        }
+        
+        /** 5.c) (optional) p.s.d.-parameters */
+        /* Read */
+        class_call(parser_read_list_of_doubles(pfc,"ncdm_psd_parameters",&entries_read,&(pba->ncdm_psd_parameters),&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        
+        /** 5.d) Mass and/or Omega of each ncdm species */
+        /* Read */
+        class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0,N_ncdm);
+        for (n=0; n<N_ncdm; n++){
+            class_test(pba->m_ncdm_in_eV[n]<0,
+                       errmsg,
+                       "You entered a negative non-CDM mass m_ncdm[%d], which makes no sense. This error was not caught in previous CLASS versions because the mass is always squared in the code, so CLASS returned the exact same results form +m_ncdm and -m_ncdm. If you want to define an 'effective negative neutrino mass' in the sense of e.g. 2405.00836 or 2407.10965, you can implement it in a python script following e.g. eq.(3) of 2407.10965",n);
+        }
+        
+        class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0,N_ncdm);
+        // the name M_ncdm is borrowed temporarily to store omega_ncdm
+        class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0,N_ncdm);
+        for (n=0; n<N_ncdm; n++){
+            if (pba->M_ncdm[n]!=0.0){
+                /* Test */
+                class_test(pba->Omega0_ncdm[n]!=0,errmsg,
+                           "You can only enter one of 'Omega_ncdm' or 'omega_ncdm' for ncdm species %d.",n);
+                /* Complete set of parameters: if the user passed either
+                 Omega_ncdm or omega_ncdm, now it's stored anyway as
+                 Omega_0_ncdm */
+                pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
+                // the name M_ncdm is now available for its real destination
+            }
+            /* Set default value
+             this is the right place for passing the default value of the mass
+             (all parameters must have a default value; most of them are defined
+             in input_default_params, but the ncdm mass is a bit special and
+             there is no better place for setting its default value). We put an
+             arbitrary value m << 10^-3 eV, i.e. the ultra-relativistic limit. */
+            if ((pba->Omega0_ncdm[n]==0.0) && (pba->m_ncdm_in_eV[n]==0.0)) {
+                pba->m_ncdm_in_eV[n]=1.e-5;
+            }
+        }
+        
+        /** 5.e) Temperatures */
+        /* Read */
+        class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
+        
+        /** 5.f) Chemical potentials */
+        /* Read */
+        class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default,N_ncdm);
+        
+        /** 5.g) Degeneracy of each ncdm species */
+        /* Read */
+        class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default,N_ncdm);
+        
+        /** 5.h) Quadrature modes, 0 is qm_auto */
+        /* Read */
+        class_call(parser_read_list_of_integers(pfc, "Quadrature strategy", &entries_read, &(pba->ncdm_quadrature_strategy), &flag1, errmsg),
+                   errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+        if (flag1 == _TRUE_) {
+            class_test(entries_read != N_ncdm, errmsg, "Number of entries in Quadrature strategy, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+        }
+        else {
+            class_read_list_of_integers_or_default("ncdm_quadrature_strategy", pba->ncdm_quadrature_strategy, 0, N_ncdm);
+        }
+        
+        /** 5.h.1) qmax, if relevant */
+        /* Read */
+        class_call(parser_read_list_of_doubles(pfc, "Maximum_q", &entries_read, &(pba->ncdm_qmax), &flag1, errmsg),
+                   errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+        if (flag1 == _TRUE_) {
+            class_test(entries_read != N_ncdm, errmsg, "Number of entries in Maximum_q, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+        }
+        else {
+            class_read_list_of_doubles_or_default("ncdm_maximum_q", pba->ncdm_qmax, 15, N_ncdm);
+        }
+        
+        /** 5.h.2) Number of momentum bins */
+        class_call(parser_read_list_of_integers(pfc, "Number of momentum bins", &entries_read, &(pba->ncdm_input_q_size), &flag1, errmsg),
+                   errmsg, errmsg); //Deprecated parameter, still read to keep compatibility
+        if (flag1 == _TRUE_) {
+            class_test(entries_read != N_ncdm, errmsg, "Number of entries in Number of momentum bins, %d, is different from the number of N_cdm species, %d", entries_read, N_ncdm);
+        }
+        else {
+            class_read_list_of_integers_or_default("ncdm_N_momentum_bins", pba->ncdm_input_q_size, 150, N_ncdm);
+        }
+        
+        /** Last step of 5) (i.e. NCDM) -- Calculate the masses and momenta */
+        class_call(background_ncdm_init(ppr,pba),
+                   pba->error_message,
+                   errmsg);
+        /* Complete set of parameters
+         We must calculate M from omega or vice versa if one of them is missing.
+         If both are present, we must update the degeneracy parameter to
+         reflect the implicit normalization of the distribution function. */
+        for (n=0; n < N_ncdm; n++){
+            if (pba->m_ncdm_in_eV[n] != 0.0){
+                /* Case of only mass or mass and Omega/omega: */
+                pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->T_cmb;
+                class_call(background_ncdm_momenta(pba->q_ncdm_bg[n],
+                                                   pba->w_ncdm_bg[n],
+                                                   pba->q_size_ncdm_bg[n],
+                                                   pba->M_ncdm[n],
+                                                   pba->factor_ncdm[n],
+                                                   0.,
+                                                   NULL,
+                                                   &rho_ncdm,
+                                                   NULL,
+                                                   NULL,
+                                                   NULL),
+                           pba->error_message,
+                           errmsg);
+                if (pba->Omega0_ncdm[n] == 0.0){
+                    pba->Omega0_ncdm[n] = rho_ncdm/pba->H0/pba->H0;
+                }
+                else{
+                    fnu_factor = (pba->H0*pba->H0*pba->Omega0_ncdm[n]/rho_ncdm);
+                    pba->factor_ncdm[n] *= fnu_factor;
+                    /* dlnf0dlnq is already computed, but it is independent of any
+                     normalization of f0. We don't need the factor anymore, but we
+                     store it nevertheless */
+                    pba->deg_ncdm[n] *=fnu_factor;
+                }
+            }
+            else{
+                /* Case of only Omega/omega: */
+                class_call(background_ncdm_M_from_Omega(ppr,pba,n),
+                           pba->error_message,
+                           errmsg);
+                pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->T_cmb;
+            }
+            pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
+        }
+        
+    }
+    class_test(pba->Omega0_ncdm_tot<0,errmsg,"You cannot set the NCDM density to negative values.");
+    if (has_m_budget == _TRUE_) {
+        class_test(Omega_m_remaining < pba->Omega0_ncdm_tot, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_ncdm = %e' (summed over all species)",Omega_m_remaining, pba->Omega0_ncdm_tot);
+        Omega_m_remaining-= pba->Omega0_ncdm_tot;
+    }
+    
+    /** 6) Omega_0_k (effective fractional density of curvature) */
+    /* Read */
+    class_read_double("Omega_k",pba->Omega0_k);
+    /* Complete set of parameters */
+    pba->K = -pba->Omega0_k*pow(pba->H0,2);
+    if (pba->K > 0.){
+        pba->sgnK = 1;
+    }
+    else if (pba->K < 0.){
+        pba->sgnK = -1;
+    }
+    
+    
+    /* 7) ** ADDITIONAL SPECIES ** --> Add your species here */
+    
+    /** 7.1) Decaying DM into DR */
+    /** 7.1.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
+    /* Read */
+    class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_dcdmdr",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "You can only enter one of 'Omega_dcdmdr' or 'omega_dcdmdr'.");
+    
+    /* ---> if user passes directly the density of dcdmdr */
+    if (flag1 == _TRUE_)
+        pba->Omega0_dcdmdr = param1;
+    if (flag2 == _TRUE_)
+        pba->Omega0_dcdmdr = param2/pba->h/pba->h;
+    class_test(pba->Omega0_dcdmdr<0,errmsg,"You cannot set the dcdmdr density to negative values.");
+    
+    /** 7.1.b) Omega_ini_dcdm or omega_ini_dcdm */
+    /* Read */
+    class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "You can only enter one of 'Omega_ini_dcdm' or 'omega_ini_dcdm'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+        pba->Omega_ini_dcdm = param1;
+    }
+    if (flag2 == _TRUE_){
+        pba->Omega_ini_dcdm = param2/pba->h/pba->h;
+    }
+    class_test(pba->Omega_ini_dcdm<0,errmsg,"You cannot set the initial dcdm density to negative values.");
+    
+    if (pba->Omega0_dcdmdr > 0 || (pba->Omega_ini_dcdm > 0.)) {
+        
+        /** 7.1.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
+        /* Read */
+        class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),                          // [km/(s Mpc)]
+                   errmsg,
+                   errmsg);
+        class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),                            // [s]
+                   errmsg,
+                   errmsg);
+        /* Test */
+        class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+                   errmsg,
+                   "In input file, you can only enter one of Gamma_dcdm or tau_dcdm, choose one");
+        /* Complete set of parameters */
+        if (flag1 == _TRUE_){
+            pba->Gamma_dcdm = param1*(1.e3/_c_);                                                          // [Mpc]
+            pba->tau_dcdm = _Mpc_over_m_*1e-3/param1;                                                     // [s]
+        }
+        if (flag2 == _TRUE_){
+            pba->Gamma_dcdm = _Mpc_over_m_/(param2*_c_);                                                  // [Mpc]
+            pba->tau_dcdm = param2;                                                                       // [s]
+        }
+        /* Test */
+        class_test(pba->tau_dcdm<0.,
+                   errmsg,
+                   "You need to enter a lifetime for the decaying DM 'tau_dcdm > 0.'");
+        class_test(pba->Gamma_dcdm<0.,
+                   errmsg,
+                   "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
+    }
+    if (has_m_budget == _TRUE_) {
+        class_test(Omega_m_remaining < pba->Omega0_dcdmdr, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_dcdmdr = %e'",Omega_m_remaining, pba->Omega0_dcdmdr);
+        Omega_m_remaining-= pba->Omega0_dcdmdr;
+    }
+    
+    /** 7.2) Multi-interacting dark matter (idm) */
+    /** 7.2.1) Global parameters for all interacting Dark Matter components */
+    
+    /** 7.2.1.a) Amount of interacting dark matter*/
+    /* Read fraction or density */
+    class_call(parser_read_double(pfc,"Omega_idm",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_idm",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"f_idm",&param3,&flag3,errmsg),
                errmsg,
                errmsg);
     class_test(class_at_least_two_of_three(flag1,flag2,flag3),
                errmsg,
-               "In input file, you can only enter one of {a_idm_dr, a_dark, Gamma_0_nadm}, choose one");
-
-    /* Consistency checks */
-    if (flag1 == _TRUE_){
-      pth->a_idm_dr = param1;
-      if (input_verbose > 1)
-        printf("You passed a_idm_dr = a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param1, param1*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
+               "In input file, you can only enter one of {Omega_idm, omega_idm, f_idm}, choose one");
+    
+    /* ---> if user passes directly the density of idm */
+    if (flag1 == _TRUE_)
+        pba->Omega0_idm = param1;
+    if (flag2 == _TRUE_)
+        pba->Omega0_idm = param2/pba->h/pba->h;
+    if (flag3 == _TRUE_)
+        f_idm = param3;
+    
+    /* ---> if user passes density of idm as a fraction of the CDM one */
+    /* Find Omega_idm from Omega_cdm and f_idm */
+    if (flag3 == _TRUE_) {
+        class_test((f_idm < 0.) || (f_idm > 1.),
+                   errmsg,
+                   "The fraction of interacting DM must be between 0 and 1, you asked for f_idm=%e",param3);
+        
+        /* Test if there is enough dark matter left to be converted into idm */
+        class_test(f_idm > f_cdm,
+                   errmsg,
+                   "There is not enough cold dark matter left (f_cdm = %.10e) that should be treated as idm, is the sum of the {f_idm=%.10e} parameters less or equal to 1?", f_cdm, f_idm);
+        
+        f_cdm -= f_idm;
     }
-    else if (flag2 == _TRUE_){
-      pth->a_idm_dr = param2;
-      if (input_verbose > 1)
-        printf("You passed a_dark = a_idm_dr = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param2, param2*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
+    
+    /** 7.2.1.b) Mass of interacting dark matter*/
+    /* Read */
+    if (pba->Omega0_idm > 0.  || f_idm > 0) {
+        class_read_double("m_idm",pth->m_idm);
+        
+        class_test(pth->m_idm <= 0.,
+                   errmsg,
+                   "m_idm must be positive.");
+        class_test(pth->m_idm < 1.e6,
+                   errmsg,
+                   "Note that the idm formalism assumes the DM to be cold. You have chosen a low mass of m_idm=%e, which is beyond the regime in which the code has been tested.", pth->m_idm);
+        
+        ppt->has_idm_soundspeed = _TRUE_;
+        
+        class_read_flag("idm_soundspeed",ppt->has_idm_soundspeed);
     }
-    else if (flag3 == _TRUE_){
-      pth->a_idm_dr = param3*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
-      if (input_verbose > 1)
-        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", param3, pth->a_idm_dr);
-    }
-
-    class_test(pth->a_idm_dr > 0 && pba->Omega0_idr == 0.0,
-               errmsg,
-               "You have requested interacting DM ith DR, this requires a non-zero density of interacting DR. Please set either N_idr or xi_idr");
-
-    /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
-    if (flag3 == _TRUE_){
-      /* Set 7.2.2.d and 7.2.2.e */
-      pth->n_index_idm_dr = 0;
-      ppt->idr_nature = idr_fluid;
-      if (input_verbose > 1)
-        printf("NADM requested. Defaulting on n_index_idm_dr = %e and idr_nature = fluid \n", pth->n_index_idm_dr);
-    }
-
-    /* If the user passed something else, assume they want ETHOS parameterisation*/
-    else{
-      /** 7.2.2.d) n_index_idm_dr */
-      class_call(parser_read_double(pfc,"n_index_idm_dr",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Deprecated input parameters, read for backwards compatibility) */
-      class_call(parser_read_double(pfc,"nindex_idm_dr",&param3,&flag3,errmsg),
-                 errmsg,
-                 errmsg);
-      class_call(parser_read_double(pfc,"nindex_dark",&param2,&flag2,errmsg),
-                 errmsg,
-                 errmsg);
-      class_test(class_at_least_two_of_three(flag1,flag2,flag3),
-                 errmsg,
-                 "In input file, you can only enter one of {n_index_idm_dr, nindex_idm_dr, nindex_dark}, choose one");
-      if (flag1 == _TRUE_){
-        pth->n_index_idm_dr = param1;
-      }
-      if (flag2 == _TRUE_){
-        pth->n_index_idm_dr = param2;
-      }
-      if (flag3 == _TRUE_){
-        pth->n_index_idm_dr = param3;
-      }
-
-    }
-
-    /** 7.2.2.e) Strength of self interactions */
-    class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
-
-    /** 7.2.2.f) Read alpha_idm_dr or alpha_dark */
-    class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+    
+    /** 7.2.2) Dark Matter interacting with Dark Radiation, ETHOS-parametrization/NADM parametrization, see explanatory.ini */
+    
+    /** 7.2.2.a) Amount of idr  */
+    /* Read */
+    class_call(parser_read_double(pfc,"N_idr",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
-    /* try with the other syntax */
-    if (flag1 == _FALSE_) {
-      class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-    }
-
-    /* At this point these quantities may or may not be allocated */
-    /* If we have perturbations, everything is alright, go ahead and allocate default values */
-    if (ppt->has_perturbations) {
-      if (flag1 == _TRUE_){
-        if (ppt->perturbations_verbose > 0) {
-          class_test(entries_read > ppr->l_max_idr-1,
-                     errmsg,
-                     "The number of alpha_idm_dr parameters passed (%d) is bigger than l_max_idr-1=%d", entries_read, ppr->l_max_idr-1);
-        }
-        /* If less input than expected -> fill up with last value, otherwise nothing to do */
-        if (entries_read < (ppr->l_max_idr-1)){
-          if (ppt->perturbations_verbose > 0) {
-            printf("WARNING: only %i entries of alpha_idm_dr were provided for %i moments, filling up the rest with the last entry provided\n", entries_read, ppr->l_max_idr-1);
-          }
-          class_realloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-          for (n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
-        }
-      }
-      else{
-        /* Allocate default values if we have idm, but the user doesn't provide input */
-        class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-        for (n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
-      }
-    }
-    /* If we don't have perturbations, we should free the arrays again if necessary */
-    else if (ppt->alpha_idm_dr != NULL) {
-      free(ppt->alpha_idm_dr);
-    }
-  }
-
-  /** 7.2.2.g) idr_nature */
-  if (pba->T_idr > 0) {
-    class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+    class_call(parser_read_double(pfc,"N_dg",&param2,&flag2,errmsg),
                errmsg,
                errmsg);
+    class_call(parser_read_double(pfc,"xi_idr",&param3,&flag3,errmsg),
+               errmsg,
+               errmsg);
+    class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+               errmsg,
+               "In input file, you can only enter one of {N_idr, N_dg, xi_idr}, choose one");
+    
+    /** 7.2.2.b) stat_f_idr  */
+    class_read_double("stat_f_idr",stat_f_idr);
+    
     if (flag1 == _TRUE_) {
-      if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
-        ppt->idr_nature = idr_free_streaming;
-      }
-      else if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
-        ppt->idr_nature = idr_fluid;
-      }
-      else {
-        class_stop(errmsg, "idr_nature has to be either free_streaming or fluid, but you entered %s.", string1);
-      }
+        pba->T_idr = pow(param1/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
+        if (input_verbose > 1)
+            printf("You passed N_idr = N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param1, pba->T_idr/pba->T_cmb);
     }
-  }
-
-  /** 7.2.2.h) beta_idr */
-  if ((pba->Omega0_idm > 0 || f_idm > 0) && pba->Omega0_idr > 0) {
+    else if (flag2 == _TRUE_) {
+        pba->T_idr = pow(param2/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
+        if (input_verbose > 2)
+            printf("You passed N_dg = N_idr = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
+    }
+    else if (flag3 == _TRUE_) {
+        pba->T_idr = param3 * pba->T_cmb;
+        if (input_verbose > 1)
+            printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", param3, stat_f_idr*pow(param3,4.)/(7./8.)*pow(11./4.,(4./3.)));
+    }
+    if (flag1 == _TRUE_ || flag2 == _TRUE_ || flag3 == _TRUE_)
+        pba->Omega0_idr = stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
+    
+    /** 7.2.2.c) idm_dr coupling */
     /* Read */
-    class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* try with the other syntax */
-    if (flag1 == _FALSE_) {
-      class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-    }
-
-    /* At this point these quantities might or might not be allocated */
-    /* If we have perturbations, everything is alright, go ahead and allocate default values */
-    if (ppt->has_perturbations == _TRUE_) {
-      if (flag1 == _TRUE_){
-        /* If less input than expected -> fill up with last value, otherwise nothing to do */
-        if (ppt->perturbations_verbose > 0) {
-          class_test(entries_read > ppr->l_max_idr-1,
-                     errmsg,
-                     "The number of beta_idr parameters passed (%d) is bigger than l_max_idr-1=%d", entries_read, ppr->l_max_idr-1);
+    if (pba->Omega0_idm > 0. || f_idm > 0) {
+        class_call(parser_read_double(pfc,"a_idm_dr",&param1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        /* Deprecated input parameter, read for backwards compatibility) */
+        class_call(parser_read_double(pfc,"a_dark",&param2,&flag2,errmsg),
+                   errmsg,
+                   errmsg);
+        class_call(parser_read_double(pfc,"Gamma_0_nadm",&param3,&flag3,errmsg),
+                   errmsg,
+                   errmsg);
+        class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+                   errmsg,
+                   "In input file, you can only enter one of {a_idm_dr, a_dark, Gamma_0_nadm}, choose one");
+        
+        /* Consistency checks */
+        if (flag1 == _TRUE_){
+            pth->a_idm_dr = param1;
+            if (input_verbose > 1)
+                printf("You passed a_idm_dr = a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param1, param1*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
         }
-        if (entries_read < (ppr->l_max_idr-1)){
-          if (ppt->perturbations_verbose > 0) {
-            printf("WARNING: only %i entries of beta_idr were provided for %i moments, filling up the rest with the last entry provided\n", entries_read, ppr->l_max_idr-1);
-          }
-          class_realloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-          for (n=entries_read; n<(ppr->l_max_idr-1); n++)
-            ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+        else if (flag2 == _TRUE_){
+            pth->a_idm_dr = param2;
+            if (input_verbose > 1)
+                printf("You passed a_dark = a_idm_dr = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param2, param2*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
         }
-      }
-      else {
-        /* Allocate default values if we have idm, but the user doesn't provide input */
-        class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-        for (n=0; n<(ppr->l_max_idr-1); n++)
-          ppt->beta_idr[n] = 1.5;
-      }
+        else if (flag3 == _TRUE_){
+            pth->a_idm_dr = param3*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
+            if (input_verbose > 1)
+                printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", param3, pth->a_idm_dr);
+        }
+        
+        class_test(pth->a_idm_dr > 0 && pba->Omega0_idr == 0.0,
+                   errmsg,
+                   "You have requested interacting DM ith DR, this requires a non-zero density of interacting DR. Please set either N_idr or xi_idr");
+        
+        /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
+        if (flag3 == _TRUE_){
+            /* Set 7.2.2.d and 7.2.2.e */
+            pth->n_index_idm_dr = 0;
+            ppt->idr_nature = idr_fluid;
+            if (input_verbose > 1)
+                printf("NADM requested. Defaulting on n_index_idm_dr = %e and idr_nature = fluid \n", pth->n_index_idm_dr);
+        }
+        
+        /* If the user passed something else, assume they want ETHOS parameterisation*/
+        else{
+            /** 7.2.2.d) n_index_idm_dr */
+            class_call(parser_read_double(pfc,"n_index_idm_dr",&param1,&flag1,errmsg),
+                       errmsg,
+                       errmsg);
+            /* Deprecated input parameters, read for backwards compatibility) */
+            class_call(parser_read_double(pfc,"nindex_idm_dr",&param3,&flag3,errmsg),
+                       errmsg,
+                       errmsg);
+            class_call(parser_read_double(pfc,"nindex_dark",&param2,&flag2,errmsg),
+                       errmsg,
+                       errmsg);
+            class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+                       errmsg,
+                       "In input file, you can only enter one of {n_index_idm_dr, nindex_idm_dr, nindex_dark}, choose one");
+            if (flag1 == _TRUE_){
+                pth->n_index_idm_dr = param1;
+            }
+            if (flag2 == _TRUE_){
+                pth->n_index_idm_dr = param2;
+            }
+            if (flag3 == _TRUE_){
+                pth->n_index_idm_dr = param3;
+            }
+            
+        }
+        
+        /** 7.2.2.e) Strength of self interactions */
+        class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
+        
+        /** 7.2.2.f) Read alpha_idm_dr or alpha_dark */
+        class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        /* try with the other syntax */
+        if (flag1 == _FALSE_) {
+            class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+                       errmsg,
+                       errmsg);
+        }
+        
+        /* At this point these quantities may or may not be allocated */
+        /* If we have perturbations, everything is alright, go ahead and allocate default values */
+        if (ppt->has_perturbations) {
+            if (flag1 == _TRUE_){
+                if (ppt->perturbations_verbose > 0) {
+                    class_test(entries_read > ppr->l_max_idr-1,
+                               errmsg,
+                               "The number of alpha_idm_dr parameters passed (%d) is bigger than l_max_idr-1=%d", entries_read, ppr->l_max_idr-1);
+                }
+                /* If less input than expected -> fill up with last value, otherwise nothing to do */
+                if (entries_read < (ppr->l_max_idr-1)){
+                    if (ppt->perturbations_verbose > 0) {
+                        printf("WARNING: only %i entries of alpha_idm_dr were provided for %i moments, filling up the rest with the last entry provided\n", entries_read, ppr->l_max_idr-1);
+                    }
+                    class_realloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+                    for (n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+                }
+            }
+            else{
+                /* Allocate default values if we have idm, but the user doesn't provide input */
+                class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+                for (n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
+            }
+        }
+        /* If we don't have perturbations, we should free the arrays again if necessary */
+        else if (ppt->alpha_idm_dr != NULL) {
+            free(ppt->alpha_idm_dr);
+        }
     }
-    /* If we don't have perturbations, we should free the arrays again if necessary */
-    else if (ppt->beta_idr != NULL) {
-      free(ppt->beta_idr);
+    
+    /** 7.2.2.g) idr_nature */
+    if (pba->T_idr > 0) {
+        class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        if (flag1 == _TRUE_) {
+            if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
+                ppt->idr_nature = idr_free_streaming;
+            }
+            else if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
+                ppt->idr_nature = idr_fluid;
+            }
+            else {
+                class_stop(errmsg, "idr_nature has to be either free_streaming or fluid, but you entered %s.", string1);
+            }
+        }
     }
-  }
-
-  /** 7.2.3) Dark Matter interacting with baryons */
-  /** 7.2.3.a) idm_b coupling stregth */
-  if (pba->Omega0_idm > 0 || f_idm > 0) {
-    class_read_double("cross_idm_b",pth->cross_idm_b);
-
-    /** 7.2.3.b) idm_b temperature dependence */
-    /* Read */
-    if (pth->cross_idm_b > 0) {
-      class_read_int("n_index_idm_b",pth->n_index_idm_b);
-
-      /* Consistency checks */
-      class_test(((pth->n_index_idm_b > 4)||(pth->n_index_idm_b < -4)),
-                 errmsg,
-                 "The index for the DM-baryon interaction must be an integer between -4 and 4, you passed n_index_idm_b = %d.", pth->n_index_idm_b);
-      /* The following formula is taken from Dvorkin et al. (2013) */
-      pth->n_coeff_idm_b = (pow(2.,(pth->n_index_idm_b+5.)/2.)*tgamma(3.+pth->n_index_idm_b/2.))/(3.*sqrt(_PI_));
+    
+    /** 7.2.2.h) beta_idr */
+    if ((pba->Omega0_idm > 0 || f_idm > 0) && pba->Omega0_idr > 0) {
+        /* Read */
+        class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        /* try with the other syntax */
+        if (flag1 == _FALSE_) {
+            class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+                       errmsg,
+                       errmsg);
+        }
+        
+        /* At this point these quantities might or might not be allocated */
+        /* If we have perturbations, everything is alright, go ahead and allocate default values */
+        if (ppt->has_perturbations == _TRUE_) {
+            if (flag1 == _TRUE_){
+                /* If less input than expected -> fill up with last value, otherwise nothing to do */
+                if (ppt->perturbations_verbose > 0) {
+                    class_test(entries_read > ppr->l_max_idr-1,
+                               errmsg,
+                               "The number of beta_idr parameters passed (%d) is bigger than l_max_idr-1=%d", entries_read, ppr->l_max_idr-1);
+                }
+                if (entries_read < (ppr->l_max_idr-1)){
+                    if (ppt->perturbations_verbose > 0) {
+                        printf("WARNING: only %i entries of beta_idr were provided for %i moments, filling up the rest with the last entry provided\n", entries_read, ppr->l_max_idr-1);
+                    }
+                    class_realloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+                    for (n=entries_read; n<(ppr->l_max_idr-1); n++)
+                        ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+                }
+            }
+            else {
+                /* Allocate default values if we have idm, but the user doesn't provide input */
+                class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+                for (n=0; n<(ppr->l_max_idr-1); n++)
+                    ppt->beta_idr[n] = 1.5;
+            }
+        }
+        /* If we don't have perturbations, we should free the arrays again if necessary */
+        else if (ppt->beta_idr != NULL) {
+            free(ppt->beta_idr);
+        }
     }
-  }
-
-  /** 7.2.4) Dark Matter interacting with photons */
-  /** 7.2.4.a) idm_g coupling stregth */
-  if (pba->Omega0_idm > 0.0 || f_idm > 0){
-    /* Read */
-    class_call(parser_read_double(pfc,"u_idm_g",&param1,&flag1,errmsg),
+    
+    /** 7.2.3) Dark Matter interacting with baryons */
+    /** 7.2.3.a) idm_b coupling stregth */
+    if (pba->Omega0_idm > 0 || f_idm > 0) {
+        class_read_double("cross_idm_b",pth->cross_idm_b);
+        
+        /** 7.2.3.b) idm_b temperature dependence */
+        /* Read */
+        if (pth->cross_idm_b > 0) {
+            class_read_int("n_index_idm_b",pth->n_index_idm_b);
+            
+            /* Consistency checks */
+            class_test(((pth->n_index_idm_b > 4)||(pth->n_index_idm_b < -4)),
+                       errmsg,
+                       "The index for the DM-baryon interaction must be an integer between -4 and 4, you passed n_index_idm_b = %d.", pth->n_index_idm_b);
+            /* The following formula is taken from Dvorkin et al. (2013) */
+            pth->n_coeff_idm_b = (pow(2.,(pth->n_index_idm_b+5.)/2.)*tgamma(3.+pth->n_index_idm_b/2.))/(3.*sqrt(_PI_));
+        }
+    }
+    
+    /** 7.2.4) Dark Matter interacting with photons */
+    /** 7.2.4.a) idm_g coupling stregth */
+    if (pba->Omega0_idm > 0.0 || f_idm > 0){
+        /* Read */
+        class_call(parser_read_double(pfc,"u_idm_g",&param1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        class_call(parser_read_double(pfc,"cross_idm_g",&param2,&flag2,errmsg),
+                   errmsg,
+                   errmsg);
+        class_test((flag1 ==_TRUE_) && (flag2 == _TRUE_),
+                   errmsg,
+                   "Only one of two idm_g parameters {u_idm_g, cross_idm_g} can be specified at the same time");
+        
+        /* Set values */
+        if (flag1 == _TRUE_){
+            pth->u_idm_g = param1;
+            pth->cross_idm_g = pth->u_idm_g * _sigma_ * pth->m_idm/1e11 ;
+        }
+        if (flag2 == _TRUE_) {
+            pth->cross_idm_g = param2;
+            pth->u_idm_g = pth->cross_idm_g / _sigma_ * (1e11/pth->m_idm);
+        }
+        
+        /** 7.2.4.b) idm_g temperature dependence */
+        if (pth->u_idm_g > 0) {
+            class_read_double("n_index_idm_g",pth->n_index_idm_g);
+        }
+    }
+    /* Checks on budget equation */
+    if (has_m_budget == _TRUE_) {
+        class_test(Omega_m_remaining < pba->Omega0_idm, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_idm = %e'",Omega_m_remaining, pba->Omega0_idm);
+        Omega_m_remaining -= pba->Omega0_idm;
+    }
+    
+    /* We enforce the tight coupling approximation to be first order whenever idm interacts with baryons */
+    if (pth->cross_idm_b >0 && (ppr->tight_coupling_approximation != (int)first_order_CLASS)) {
+        if (ppt->perturbations_verbose > 0)
+            printf("Warning: Setting the tight_coupling_approximation = first_order_CLASS, since you selected idm-b!\n");
+        ppr->tight_coupling_approximation = first_order_CLASS;
+    }
+    else if (pth->u_idm_g > 0 && (ppr->tight_coupling_approximation != (int)first_order_CLASS && ppr->tight_coupling_approximation != (int)compromise_CLASS)) {
+        if (ppt->perturbations_verbose > 0)
+            printf("Warning: Setting the tight_coupling_approximation = compromise_CLASS, since you selected idm-g!\n");
+        ppr->tight_coupling_approximation = compromise_CLASS;
+    }
+    
+    /* ** ADDITIONAL SPECIES ** */
+    
+    
+    /** 7.3) Final consistency checks for dark matter species */
+    
+    class_test(fabs(f_cdm + f_idm - 1.) > 1e-10,
                errmsg,
-               errmsg);
-    class_call(parser_read_double(pfc,"cross_idm_g",&param2,&flag2,errmsg),
+               "The dark matter species do not add up to the expected value");
+    
+    /* After all the other possibly non-relativistic species have been determined, we can fianlly compute the CDM density */
+    if (has_m_budget == _TRUE_) {
+        pba->Omega0_cdm = Omega_m_remaining;
+    }
+    
+    /* When the CDM density is determined we can use the previously collected fractions to determine the corresponding densities. First, make sure everything is reasonable*/
+    class_test((f_idm > 0.) && (pba->Omega0_cdm == 0.),
                errmsg,
-               errmsg);
-    class_test((flag1 ==_TRUE_) && (flag2 == _TRUE_),
+               "If you want a fraction of interacting, to be consistent, you should not set the fraction of CDM to zero");
+    class_test(fabs(f_cdm + f_idm - 1.) > ppr->tol_fraction_accuracy,
                errmsg,
-               "Only one of two idm_g parameters {u_idm_g, cross_idm_g} can be specified at the same time");
-
-    /* Set values */
-    if (flag1 == _TRUE_){
-      pth->u_idm_g = param1;
-      pth->cross_idm_g = pth->u_idm_g * _sigma_ * pth->m_idm/1e11 ;
-    }
-    if (flag2 == _TRUE_) {
-      pth->cross_idm_g = param2;
-      pth->u_idm_g = pth->cross_idm_g / _sigma_ * (1e11/pth->m_idm);
-    }
-
-    /** 7.2.4.b) idm_g temperature dependence */
-    if (pth->u_idm_g > 0) {
-      class_read_double("n_index_idm_g",pth->n_index_idm_g);
-    }
-  }
-  /* Checks on budget equation */
-  if (has_m_budget == _TRUE_) {
-    class_test(Omega_m_remaining < pba->Omega0_idm, errmsg, "Too much energy density from massive species. At this point only %e is left for Omega_m, but requested 'Omega_idm = %e'",Omega_m_remaining, pba->Omega0_idm);
-    Omega_m_remaining -= pba->Omega0_idm;
-  }
-
-  /* We enforce the tight coupling approximation to be first order whenever idm interacts with baryons */
-  if (pth->cross_idm_b >0 && (ppr->tight_coupling_approximation != (int)first_order_CLASS)) {
-    if (ppt->perturbations_verbose > 0)
-      printf("Warning: Setting the tight_coupling_approximation = first_order_CLASS, since you selected idm-b!\n");
-    ppr->tight_coupling_approximation = first_order_CLASS;
-  }
-  else if (pth->u_idm_g > 0 && (ppr->tight_coupling_approximation != (int)first_order_CLASS && ppr->tight_coupling_approximation != (int)compromise_CLASS)) {
-    if (ppt->perturbations_verbose > 0)
-      printf("Warning: Setting the tight_coupling_approximation = compromise_CLASS, since you selected idm-g!\n");
-    ppr->tight_coupling_approximation = compromise_CLASS;
-  }
-
-  /* ** ADDITIONAL SPECIES ** */
-
-
-  /** 7.3) Final consistency checks for dark matter species */
-
-  class_test(fabs(f_cdm + f_idm - 1.) > 1e-10,
-             errmsg,
-             "The dark matter species do not add up to the expected value");
-
-  /* After all the other possibly non-relativistic species have been determined, we can fianlly compute the CDM density */
-  if (has_m_budget == _TRUE_) {
-    pba->Omega0_cdm = Omega_m_remaining;
-  }
-
-  /* When the CDM density is determined we can use the previously collected fractions to determine the corresponding densities. First, make sure everything is reasonable*/
-  class_test((f_idm > 0.) && (pba->Omega0_cdm == 0.),
-             errmsg,
-             "If you want a fraction of interacting, to be consistent, you should not set the fraction of CDM to zero");
-  class_test(fabs(f_cdm + f_idm - 1.) > ppr->tol_fraction_accuracy,
-             errmsg,
-             "The dark matter species do not add up to the expected value");
-  if ( f_idm > 0. )
-    pba->Omega0_idm = f_idm * pba->Omega0_cdm;
-  if ( f_cdm < 1. )
-    pba->Omega0_cdm = f_cdm * pba->Omega0_cdm;
-
-  /* When the fraction f_idm is about one, Omega0_cdm can
+               "The dark matter species do not add up to the expected value");
+    if ( f_idm > 0. )
+        pba->Omega0_idm = f_idm * pba->Omega0_cdm;
+    if ( f_cdm < 1. )
+        pba->Omega0_cdm = f_cdm * pba->Omega0_cdm;
+    
+    /* When the fraction f_idm is about one, Omega0_cdm can
      be close to zero, but due to rounding errors it could be slightly
      negative; correct for this: */
-  if (pba->Omega0_cdm < 0.)
-    pba->Omega0_cdm = 0.;
-
-  /* avoid Omega0_cdm exactly zero in synchronous gauge */
-  if ((ppt->gauge == synchronous) && (pba->Omega0_cdm < ppr->Omega0_cdm_min_synchronous)) {
-    pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
-  }
-
-  /* At this point all the species should be set, and used for the budget equation below */
-
-  /** 8) Dark energy
-      Omega_0_lambda (cosmological constant), Omega0_fld (dark energy
-      fluid), Omega0_scf (scalar field) */
-  /* Read */
-  class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"Omega_scf",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_) && ((flag3 == _FALSE_) || (param3 >= 0.)),
-             errmsg,
-             "'Omega_Lambda' or 'Omega_fld' must be left unspecified, except if 'Omega_scf' is set and < 0.");
-  class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
-             errmsg,
-             "You have entered 'Omega_scf' < 0 , so you have to specify both 'Omega_lambda' and 'Omega_fld'.");
-  /* Complete set of parameters
+    if (pba->Omega0_cdm < 0.)
+        pba->Omega0_cdm = 0.;
+    
+    /* avoid Omega0_cdm exactly zero in synchronous gauge */
+    if ((ppt->gauge == synchronous) && (pba->Omega0_cdm < ppr->Omega0_cdm_min_synchronous)) {
+        pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
+    }
+    
+    /* At this point all the species should be set, and used for the budget equation below */
+    
+    /** 8) Dark energy
+     Omega_0_lambda (cosmological constant), Omega0_fld (dark energy
+     fluid), Omega0_scf (scalar field) */
+    /* Read */
+    class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"Omega_scf",&param3,&flag3,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_) && ((flag3 == _FALSE_) || (param3 >= 0.)),
+               errmsg,
+               "'Omega_Lambda' or 'Omega_fld' must be left unspecified, except if 'Omega_scf' is set and < 0.");
+    class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
+               errmsg,
+               "You have entered 'Omega_scf' < 0 , so you have to specify both 'Omega_lambda' and 'Omega_fld'.");
+    /* Complete set of parameters
      Case of (flag3 == _FALSE_) || (param3 >= 0.) means that either we have not
      read Omega_scf so we are ignoring it (unlike lambda and fld!) OR we have
      read it, but it had a positive value and should not be used for filling.
@@ -3200,184 +3189,197 @@ int input_read_parameters_species(struct file_content * pfc,
      1) set each Omega0 and add to the total for each specified component.
      2) go through the components in order {lambda, fld, scf} and fill using
      first unspecified component. */
-
-  /* ** BUDGET EQUATION ** -> Add your species here */
-  /* Compute Omega_tot */
-  Omega_tot = pba->Omega0_g;
-  Omega_tot += pba->Omega0_b;
-  Omega_tot += pba->Omega0_ur;
-  Omega_tot += pba->Omega0_cdm;
-  Omega_tot += pba->Omega0_idm;
-  Omega_tot += pba->Omega0_dcdmdr;
-  Omega_tot += pba->Omega0_idr;
-  Omega_tot += pba->Omega0_ncdm_tot;
-  /* Step 1 */
-  if (flag1 == _TRUE_){
-    pba->Omega0_lambda = param1;
-    Omega_tot += pba->Omega0_lambda;
-  }
-  if (flag2 == _TRUE_){
-    pba->Omega0_fld = param2;
-    Omega_tot += pba->Omega0_fld;
-  }
-  if ((flag3 == _TRUE_) && (param3 >= 0.)){
-    pba->Omega0_scf = param3;
-    Omega_tot += pba->Omega0_scf;
-  }
-  /* Step 2 */
-  if (flag1 == _FALSE_) {
-    /* Fill with Lambda */
-    pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
-    if (input_verbose > 0){
-      printf(" -> matched budget equations by adjusting Omega_Lambda = %g\n",pba->Omega0_lambda);
-    }
-  }
-  else if (flag2 == _FALSE_) {
-    /* Fill up with fluid */
-    pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
-    if (input_verbose > 0){
-      printf(" -> matched budget equations by adjusting Omega_fld = %g\n",pba->Omega0_fld);
-    }
-  }
-  else if ((flag3 == _TRUE_) && (param3 < 0.)){
-    /* Fill up with scalar field */
-    pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
-    if (input_verbose > 0){
-      printf(" -> matched budget equations by adjusting Omega_scf = %g\n",pba->Omega0_scf);
-    }
-  }
-
-  /* ** END OF BUDGET EQUATION ** */
-
-  /** 8.a) If Omega fluid is different from 0 */
-  if (pba->Omega0_fld != 0.) {
-    /** 8.a.1) PPF approximation */
-    /* Read */
-    class_call(parser_read_string(pfc,"use_ppf",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
+    
+    /* ** BUDGET EQUATION ** -> Add your species here */
+    /* Compute Omega_tot */
+    Omega_tot = pba->Omega0_g;
+    Omega_tot += pba->Omega0_b;
+    Omega_tot += pba->Omega0_ur;
+    Omega_tot += pba->Omega0_cdm;
+    Omega_tot += pba->Omega0_idm;
+    Omega_tot += pba->Omega0_dcdmdr;
+    Omega_tot += pba->Omega0_idr;
+    Omega_tot += pba->Omega0_ncdm_tot;
+    /* Step 1 */
     if (flag1 == _TRUE_){
-      if (string_begins_with(string1,'y') || string_begins_with(string1,'Y')){
-        pba->use_ppf = _TRUE_;
-        class_read_double("c_gamma_over_c_fld",pba->c_gamma_over_c_fld);
-      }
-      else {
-        pba->use_ppf = _FALSE_;
-      }
+        pba->Omega0_lambda = param1;
+        Omega_tot += pba->Omega0_lambda;
     }
-
-    /** 8.a.2) Equation of state */
-    /* Read */
-    class_call(parser_read_string(pfc,"fluid_equation_of_state",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"CLP") != NULL) || (strstr(string1,"clp") != NULL)) {
-        pba->fluid_equation_of_state = CLP;
-      }
-      else if ((strstr(string1,"EDE") != NULL) || (strstr(string1,"ede") != NULL)) {
-        pba->fluid_equation_of_state = EDE;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'fluid_equation_of_state'",string1);
-      }
+    if (flag2 == _TRUE_){
+        pba->Omega0_fld = param2;
+        Omega_tot += pba->Omega0_fld;
     }
-
-    if (pba->fluid_equation_of_state == CLP) {
-      /** 8.a.2.2) Equation of state of the fluid in 'CLP' case */
-      /* Read */
-      class_read_double("w0_fld",pba->w0_fld);
-      class_read_double("wa_fld",pba->wa_fld);
-      class_read_double("cs2_fld",pba->cs2_fld);
+    if ((flag3 == _TRUE_) && (param3 >= 0.)){
+        pba->Omega0_scf = param3;
+        Omega_tot += pba->Omega0_scf;
     }
-    if (pba->fluid_equation_of_state == EDE) {
-      /** 8.a.2.3) Equation of state of the fluid in 'EDE' case */
-      /* Read */
-      class_read_double("w0_fld",pba->w0_fld);
-      class_read_double("Omega_EDE",pba->Omega_EDE);
-      class_read_double("cs2_fld",pba->cs2_fld);
+    /* Step 2 */
+    if (flag1 == _FALSE_) {
+        /* Fill with Lambda */
+        pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
+        if (input_verbose > 0){
+            printf(" -> matched budget equations by adjusting Omega_Lambda = %g\n",pba->Omega0_lambda);
+        }
     }
-  }
-
-  /** 8.b) If Omega scalar field (SCF) is different from 0 */
-  if (pba->Omega0_scf != 0.){
-
-    /** 8.b.1) Additional SCF parameters */
-    /* Read */
-    class_call(parser_read_list_of_doubles(pfc,
-                                           "scf_parameters",
-                                           &(pba->scf_parameters_size),
-                                           &(pba->scf_parameters),
-                                           &flag1,
-                                           errmsg),
-               errmsg,errmsg);
-
-    /** 8.b.2) SCF initial conditions from attractor solution */
-    /* Read */
-    class_call(parser_read_string(pfc,
-                                  "attractor_ic_scf",
-                                  &string1,
-                                  &flag1,
-                                  errmsg),
-               errmsg,
-               errmsg);
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_){
-      if (string_begins_with(string1,'y') || string_begins_with(string1,'Y')){
-        pba->attractor_ic_scf = _TRUE_;
-      }
-      else {
-        pba->attractor_ic_scf = _FALSE_;
-        /* Test */
-        class_test(pba->scf_parameters_size<2,
+    else if (flag2 == _FALSE_) {
+        /* Fill up with fluid */
+        pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
+        if (input_verbose > 0){
+            printf(" -> matched budget equations by adjusting Omega_fld = %g\n",pba->Omega0_fld);
+        }
+    }
+    else if ((flag3 == _TRUE_) && (param3 < 0.)){
+        /* Fill up with scalar field */
+        pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
+        if (input_verbose > 0){
+            printf(" -> matched budget equations by adjusting Omega_scf = %g\n",pba->Omega0_scf);
+        }
+    }
+    
+    /* ** END OF BUDGET EQUATION ** */
+    
+    /** 8.a) If Omega fluid is different from 0 */
+    if (pba->Omega0_fld != 0.) {
+        /** 8.a.1) PPF approximation */
+        /* Read */
+        class_call(parser_read_string(pfc,"use_ppf",&string1,&flag1,errmsg),
                    errmsg,
-                   "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
-        //pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
-        //pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
-      }
+                   errmsg);
+        if (flag1 == _TRUE_){
+            if (string_begins_with(string1,'y') || string_begins_with(string1,'Y')){
+                pba->use_ppf = _TRUE_;
+                class_read_double("c_gamma_over_c_fld",pba->c_gamma_over_c_fld);
+            }
+            else {
+                pba->use_ppf = _FALSE_;
+            }
+        }
+        
+        /** 8.a.2) Equation of state */
+        /* Read */
+        class_call(parser_read_string(pfc,"fluid_equation_of_state",&string1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        /* Complete set of parameters */
+        if (flag1 == _TRUE_) {
+            if ((strstr(string1,"CLP") != NULL) || (strstr(string1,"clp") != NULL)) {
+                pba->fluid_equation_of_state = CLP;
+            }
+            else if ((strstr(string1,"EDE") != NULL) || (strstr(string1,"ede") != NULL)) {
+                pba->fluid_equation_of_state = EDE;
+            }
+            else {
+                class_stop(errmsg,"incomprehensible input '%s' for the field 'fluid_equation_of_state'",string1);
+            }
+        }
+        
+        if (pba->fluid_equation_of_state == CLP) {
+            /** 8.a.2.2) Equation of state of the fluid in 'CLP' case */
+            /* Read */
+            class_read_double("w0_fld",pba->w0_fld);
+            class_read_double("wa_fld",pba->wa_fld);
+            class_read_double("cs2_fld",pba->cs2_fld);
+        }
+        if (pba->fluid_equation_of_state == EDE) {
+            /** 8.a.2.3) Equation of state of the fluid in 'EDE' case */
+            /* Read */
+            class_read_double("w0_fld",pba->w0_fld);
+            class_read_double("Omega_EDE",pba->Omega_EDE);
+            class_read_double("cs2_fld",pba->cs2_fld);
+        }
     }
-
-    /** 8.b.3) SCF tuning parameter */
-    /* Read */
-    class_read_int("scf_tuning_index",pba->scf_tuning_index);
-    /* Test */
-    class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
-               errmsg,
-               "Tuning index 'scf_tuning_index' (%d) is larger than the number of entries (%d) in 'scf_parameters'.",
-               pba->scf_tuning_index,pba->scf_parameters_size);
-
-    /** 8.b.4) Shooting parameter */
-    /* Read */
-    class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
-    /* Complete set of parameters */
-      /* Complete set of initial conditions */
-      /* First case: tracking condition */
-      /* Second case: general initial condition */
-      if (pba->scf_parameters[3] < -0.5){
-          pba->Omega_phi_ini_scf = exp(pba->scf_parameters[pba->scf_tuning_index])*pba->Omega0_scf
-          *pow(1.e-56*(pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),1.+0.5/pba->scf_parameters[3]);
-          pba->theta_phi_ini_scf = acos(1.+2./(3.*pba->scf_parameters[3]));
-          pba->y_phi_ini_scf = 3.*sin(pba->theta_phi_ini_scf);
-          //printf("Omega_phi = %-15g \n",pba->Omega_phi_ini_scf);
-          //printf("y1_phi = %-15g \n",pba->y_phi_ini_scf);
-          //printf("shooting = %-15g \n",pba->scf_parameters[pba->scf_tuning_index]);
-      }
-      else{
-          //pba->y_phi_ini_scf = pba->scf_parameters[0]*1.e-28*pow((pba->Omega0_cdm+pba->Omega0_b)/(pba->Omega0_g+pba->Omega0_ur),0.5);
-          pba->y_phi_ini_scf = 2.*pba->scf_parameters[0]*1.e-28/pow(pba->Omega0_g+pba->Omega0_ur,0.5);
-          pba->Omega_phi_ini_scf = exp(pba->scf_parameters[pba->scf_tuning_index])*pow(pba->y_phi_ini_scf,2.0);
-          pba->theta_phi_ini_scf=0.2*pba->y_phi_ini_scf;
-//    scf_lambda = pba->scf_parameters[0];
-//    if ((fabs(scf_lambda) < 3.)&&(pba->background_verbose>1)){
-//      printf("'scf_lambda' = %e < 3 won't be tracking (for exp quint) unless overwritten by tuning function.",scf_lambda);
+    
+    /** 8.b) If Omega scalar field (SCF) is different from 0 */
+    if (pba->Omega0_scf != 0.){
+        
+        /** 8.b.1) Additional SCF parameters */
+        /* Read */
+        class_call(parser_read_list_of_doubles(pfc,
+                                               "scf_parameters",
+                                               &(pba->scf_parameters_size),
+                                               &(pba->scf_parameters),
+                                               &flag1,
+                                               errmsg),
+                   errmsg,errmsg);
+        
+        /** 8.b.2) SCF initial conditions from attractor solution */
+        /* Read */
+        class_call(parser_read_string(pfc,
+                                      "attractor_ic_scf",
+                                      &string1,
+                                      &flag1,
+                                      errmsg),
+                   errmsg,
+                   errmsg);
+        /* Complete set of parameters */
+        if (flag1 == _TRUE_){
+            if (string_begins_with(string1,'n') || string_begins_with(string1,'N')){
+                pba->attractor_ic_scf = _FALSE_;
+                /* Test */
+                class_test(pba->scf_parameters_size<2,
+                           errmsg,
+                           "Since you are not using attractor initial conditions, you must specify the initial conditions as the last three entries in scf_parameters. See explanatory.ini for more details.");
+                /* Complete set of parameters */
+                pba->theta_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
+                pba->y1_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
+                pba->alpha_ini_scf = pba->scf_parameters[pba->scf_parameters_size];
+            }
+        }
+        if (pba->attractor_ic_scf == _TRUE_){
+            /** 8.b.3) SCF tuning parameter */
+            /* Read */
+            class_read_int("scf_tuning_index",pba->scf_tuning_index);
+            /* Test */
+            class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
+                       errmsg,
+                       "Tuning index 'scf_tuning_index' (%d) is larger than the number of entries (%d) in 'scf_parameters'.",
+                       pba->scf_tuning_index,pba->scf_parameters_size);
+            
+            /** 8.b.4) Shooting parameter */
+            /* Read */
+            class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
+            /** - Initial attractor conditions for scf variables */
+            /** - If lambda < 0 */
+            if (pba->scf_parameters[1] < 0.){
+                /** - For the initial values of theta_ini and Omega_ini we use the attractor scaling solution during radiation domination */
+                theta_scf = acos(-1./3.);
+                alpha_scf = 0.5*log(-12./pba->scf_parameters[1]);
+                /** - For the initial mass to Hubble ratio we are using the estimation in Eq.(22) of Matos & Urena-Lopez in astro-ph/0006024 [PRD 63.063056, 2001] */
+                /** - Initial value of the mass to Hubble ratio, assuming a_i = 1.e-14 */
+                masstohubble_ini_scf = 1.e-28*pow(pba->scf_parameters[1]/3.-4.,2.)*pow(pba->Omega0_scf/(pba->Omega0_g+pba->Omega0_ur),2.);
+                /** The parameter to be adjusted is y1_scf, and in consequence the scalar field mass is an output value linked to lambda */
+                /** The tuning parameter was adjusted so that it also works with negative values */
+                y1_scf = 2.*masstohubble_ini_scf*(4.5+pba->scf_parameters[pba->scf_tuning_index]);
+            }
+            else{
+                /** - Otherwise: lambda > = 0 */
+                /** - The mass parameter is m = pow(10.,scf_parameters[0]) */
+                masstohubble_ini_scf = 15.64*pow(10.,pba->scf_parameters[0])/(pow(pba->Omega0_g+pba->Omega0_ur,0.5)*pba->H0);
+                /** - First set up the initial value of y_1 = 2m/H (Conversion of the boson mass into initial conditions) */
+                y1_scf = 2.*masstohubble_ini_scf;
+                /** - Find the scale factor at the start of field oscillations */
+                /** - We are using the estimation in Eq.(2.13) of Urena-Lopez & Gonzalez-Morales in arXiv/1511.08195 [JCAP 7.048, 2016] */
+                aosc_scf = pow(1.25*_PI_/(masstohubble_ini_scf*pow(1.+pow(_PI_,2)/36.,0.5)),0.5);
+                
+                if (pba->scf_parameters[1] > 0){ /** - If lambda > 0 */
+                    alpha_scf = pba->scf_parameters[pba->scf_tuning_index] //0.5*log(sin(0.5*pba->scf_parameters[pba->scf_tuning_index]))
+                    + log(2.*masstohubble_ini_scf)-0.5*log(2.*pba->scf_parameters[1]);
+                }
+                else{
+                    /** - Otherwise: lambda = 0 */
+                    /** - Calculate pivot value of Omega_phi_init for the calculation of appropriate initial conditions */
+                    alpha_scf = pba->scf_parameters[pba->scf_tuning_index]+
+                    0.5*log(pba->Omega0_scf*1.e-14/(pow(aosc_scf,3.)*(pba->Omega0_g+pba->Omega0_ur)));
+                }
+            }
+            /** - Finally, set up the initial conditions */
+            pba->theta_ini_scf = theta_scf;
+            pba->y1_ini_scf = y1_scf;
+            pba->alpha_ini_scf = alpha_scf;
+        }
+        return _SUCCESS_;
     }
-  }
-
-  return _SUCCESS_;
-
 }
-
 
 /**
  * Read the parameters of injection structure
@@ -5926,10 +5928,11 @@ int input_default_params(struct background *pba,
   pba->scf_parameters_size = 0;
   /** 9.b.2) Initial conditions from attractor solution */
   pba->attractor_ic_scf = _TRUE_;
-  pba->Omega_phi_ini_scf = 0.;
-  pba->theta_phi_ini_scf = 0.;
+  pba->alpha_ini_scf = 0.;
+  pba->theta_ini_scf = 0.;
+  pba->y1_ini_scf = 0.;
   /** 9.b.3) Tuning parameter */
-  pba->scf_tuning_index = 4;
+  pba->scf_tuning_index = 2;
 
   /**
    * Deafult to input_read_parameters_heating

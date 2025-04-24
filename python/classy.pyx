@@ -368,6 +368,8 @@ cdef class Class:
         # with the error message from the faulty module of CLASS.
         if "background" in level:
             if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
+                self.ncp.add("background")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
             self.ncp.add("background")
@@ -375,6 +377,8 @@ cdef class Class:
         if "thermodynamics" in level:
             if thermodynamics_init(&(self.pr), &(self.ba),
                                    &(self.th)) == _FAILURE_:
+                self.ncp.add("thermodynamics")
+                self.allocated = True 
                 self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
@@ -382,6 +386,8 @@ cdef class Class:
         if "perturbations" in level:
             if perturbations_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
+                self.ncp.add("perturb")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturbations")
@@ -389,6 +395,8 @@ cdef class Class:
         if "primordial" in level:
             if primordial_init(&(self.pr), &(self.pt),
                                &(self.pm)) == _FAILURE_:
+                self.ncp.add("primordial")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
@@ -396,6 +404,8 @@ cdef class Class:
         if "fourier" in level:
             if fourier_init(&self.pr, &self.ba, &self.th,
                               &self.pt, &self.pm, &self.fo) == _FAILURE_:
+                self.ncp.add("fourier")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.fo.error_message)
             self.ncp.add("fourier")
@@ -403,6 +413,8 @@ cdef class Class:
         if "transfer" in level:
             if transfer_init(&(self.pr), &(self.ba), &(self.th),
                              &(self.pt), &(self.fo), &(self.tr)) == _FAILURE_:
+                self.ncp.add("transfer")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
@@ -411,6 +423,8 @@ cdef class Class:
             if harmonic_init(&(self.pr), &(self.ba), &(self.pt),
                             &(self.pm), &(self.fo), &(self.tr),
                             &(self.hr)) == _FAILURE_:
+                self.ncp.add("harmonic")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.hr.error_message)
             self.ncp.add("harmonic")
@@ -418,6 +432,8 @@ cdef class Class:
         if "lensing" in level:
             if lensing_init(&(self.pr), &(self.pt), &(self.hr),
                             &(self.fo), &(self.le)) == _FAILURE_:
+                self.ncp.add("lensing")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
@@ -425,6 +441,8 @@ cdef class Class:
         if "distortions" in level:
             if distortions_init(&(self.pr), &(self.ba), &(self.th),
                                 &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
+                self.ncp.add("distortions")
+                self.allocated = True
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sd.error_message)
             self.ncp.add("distortions")
@@ -2286,8 +2304,8 @@ cdef class Class:
               if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                   free(pvecback) #manual free due to error
                   raise CosmoSevereError(self.ba.error_message)
-
-              w_scf[iz] = -np.cos(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))
+              else:
+                  w_scf[iz] = -np.cos(pvecback[self.ba.index_bg_theta_scf])
 
           free(pvecback)
 
@@ -2321,19 +2339,21 @@ cdef class Class:
               if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                   free(pvecback) #manual free due to error
                   raise CosmoSevereError(self.ba.error_message)
-
-              wa_scf[iz] = -np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))*(3.*np.sin(pvecback[self.ba.index_bg_theta_phi_scf])*0.5*(1.-np.tanh(pvecback[self.ba.index_bg_theta_phi_scf]**2-1.e4))
-                -pvecback[self.ba.index_bg_y_phi_scf])
+              else:
+                  wa_scf[iz] = -np.sin(pvecback[self.ba.index_bg_theta_scf])*(3.*np.sin(pvecback[self.ba.index_bg_theta_scf])
+                - pow(pow(pvecback[self.ba.index_bg_y1_scf],2.)
+                - self.ba.scf_parameters[1]*exp(2.*pvecback[self.ba.index_bg_alpha_scf])
+                *(1.+np.cos(pvecback[self.ba.index_bg_theta_scf])),0.5))
 
           free(pvecback)
 
         return (wa_scf[0] if np.isscalar(z) else wa_scf)
 
-    def log10m_scf(self, z):
+    def phi_scf(self, z):
         """
-        log10m_scf(z)
+        phi_scf(z)
 
-        Return the scf equation of state 
+        Return the value of phi_scf
 
         Parameters
         ----------
@@ -2344,25 +2364,31 @@ cdef class Class:
 
         cdef int last_index #junk
         cdef double * pvecback
-
+    
         zarr = np.atleast_1d(z).astype(np.float64)
-
-        log10m_scf = np.zeros_like(zarr)
-
+    
+        phi_scf = np.zeros_like(zarr)
+    
         if self.ba.has_scf == True:
-
+    
           pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
           for iz, redshift in enumerate(zarr):
 
               if background_at_z(&self.ba,redshift,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
                   free(pvecback) #manual free due to error
                   raise CosmoSevereError(self.ba.error_message)
-
-              log10m_scf[iz] = pvecback[self.ba.index_bg_y_phi_scf]
-
+              else:
+                  if self.ba.scf_parameters[1] == 0.:
+                      phi_scf[iz] = -np.sqrt(6.)*exp(pvecback[self.ba.index_bg_alpha_scf])*np.cos(0.5*pvecback[self.ba.index_bg_theta_scf])/pvecback[self.ba.index_bg_y1_scf]
+                  else:
+                      ini_misalignment_scf = np.exp(-pvecback[self.ba.index_bg_alpha_scf])*pow(pow(pvecback[self.ba.index_bg_y1_scf],2.)
+                      - self.ba.scf_parameters[1]*np.exp(2.*pvecback[self.ba.index_bg_alpha_scf])
+                      *(1.+np.cos(pvecback[self.ba.index_bg_theta_scf])),0.5)/pow(2.*self.ba.scf_parameters[1],0.5);
+                      phi_scf[iz] = 2.*np.arctan(ini_misalignment_scf)*180./np.pi
+    
           free(pvecback)
 
-        return (log10m_scf[0] if np.isscalar(z) else log10m_scf)
+        return (phi_scf[0] if np.isscalar(z) else phi_scf)    
 
     def Om_ncdm(self, z):
         """
@@ -2831,8 +2857,10 @@ cdef class Class:
                 value = self.w_scf(0)
             elif name== 'wa0_scf':
                 value = self.wa_scf(0)
-            elif name== 'logm_scf':
-                value=self.log10m_scf(0)
+            elif name== 'phi0_scf':
+                value = self.phi_scf(0)
+            elif name== 'phi_scf_ini':
+                value = self.phi_scf(9.e13)
             elif name == 'age':
                 value = self.ba.age
             elif name == 'conformal_age':

@@ -115,11 +115,9 @@ struct background
   double * scf_parameters; /**< list of parameters describing the scalar field potential */
   short attractor_ic_scf;  /**< whether the scalar field has attractor initial conditions */
   int scf_tuning_index;    /**< index in scf_parameters used for tuning */
-  double Omega_phi_ini_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field 2*/
-  double theta_phi_ini_scf;       /* Angular internal variable */
-  double y_phi_ini_scf; /* Second potential variable normalized */
-//  double phi_ini_scf;      /**< \f$ \phi(t_0) \f$: scalar field initial value */
-//  double phi_prime_ini_scf;/**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
+  double alpha_ini_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field 2*/
+  double theta_ini_scf;       /* Angular internal variable */
+  double y1_ini_scf; /* Second potential variable normalized */
   int scf_parameters_size; /**< size of scf_parameters */
   double varconst_alpha; /**< finestructure constant for varying fundamental constants */
   double varconst_me; /**< electron mass for varying fundamental constants */
@@ -176,10 +174,9 @@ struct background
   int index_bg_rho_dcdm;      /**< dcdm density */
   int index_bg_rho_dr;        /**< dr density */
 
-  int index_bg_Omega_phi_scf; /**< scalar field density parameter */
-  int index_bg_theta_phi_scf; /**< scalar field angular variable */
-  int index_bg_y_phi_scf;     /**< scalar field y_1 variable */
-  int index_bg_y2_phi_scf;    /**< scalar field y_2 variable */
+  int index_bg_alpha_scf; /**< scalar field density parameter */
+  int index_bg_theta_scf; /**< scalar field angular variable */
+  int index_bg_y1_scf;     /**< scalar field y_1 variable */
   int index_bg_rho_scf;       /**< scalar field energy density */
   int index_bg_p_scf;         /**< scalar field pressure */
   int index_bg_p_prime_scf;   /**< scalar field pressure */
@@ -257,9 +254,9 @@ struct background
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
   int index_bi_rho_fld; /**< {B} fluid density */
-  int index_bi_Omega_phi_scf; /**< {B} scalar field density parameter */
-  int index_bi_theta_phi_scf; /**< {B} scalar field angular variable */
-  int index_bi_y_phi_scf; /**< {B} scalar field y_1 */
+  int index_bi_alpha_scf; /**< {B} scalar field density parameter */
+  int index_bi_theta_scf; /**< {B} scalar field angular variable */
+  int index_bi_y1_scf; /**< {B} scalar field y_1 */
 
   int index_bi_time;    /**< {C} proper (cosmological) time in Mpc */
   int index_bi_rs;      /**< {C} sound horizon */
@@ -557,12 +554,6 @@ extern "C" {
   double sin_scf(struct background *pba,
      double theta_phi
      );
-
-  double y2_phi_scf(struct background *pba,
-        double Omega_phi,
-        double theta,
-        double y1_phi
-        );
 
   /** Coupling between scalar field and matter **/
   double Q_scf(
