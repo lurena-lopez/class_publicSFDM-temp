@@ -1881,7 +1881,7 @@ int background_solve(
   /* conformal distance in Mpc (equal to comoving radius in flat case) */
   double conformal_distance;
   /* Initial misalignment of scf */
-  double ini_misalignment_scf=0.;
+  double ini_misalignment_scf=0.,fin_misalignment_scf=0.;
 
   /* evolvers */
   extern int evolver_rk(EVOLVER_PROTOTYPE);
@@ -2076,8 +2076,14 @@ int background_solve(
         if (pba->scf_parameters[1] > 0.){
           ini_misalignment_scf = pba->y1_ini_scf*exp(-pba->alpha_ini_scf)*
           pow(1.-pba->scf_parameters[1]*exp(2.*pba->alpha_ini_scf)*(1.+cos_scf(pba,pba->theta_ini_scf))/pow(pba->y1_ini_scf,2.),0.5)/pow(2.*pba->scf_parameters[1],0.5);
+          fin_misalignment_scf = pvecback[pba->index_bg_y1_scf]*exp(-pvecback[pba->index_bg_alpha_scf])*
+            pow(1.-pba->scf_parameters[1]*exp(2.*pvecback[pba->index_bg_alpha_scf])*(1.+cos_scf(pba,pvecback[pba->index_bg_theta_scf]))/pow(pvecback[pba->index_bg_y1_scf],2.),0.5)/pow(2.*pba->scf_parameters[1],0.5);
           printf("    Initial field misalignment:\n");
           printf("     -> phi_ini/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(ini_misalignment_scf), 2.*atan(ini_misalignment_scf)*180./_PI_);
+          printf("    Final field misalignment:\n");
+          printf("     -> phi_ini/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(fin_misalignment_scf), 2.*atan(fin_misalignment_scf)*180./_PI_);
+          printf("    Cosmic field excursion:\n");
+          printf("     -> Delta phi/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(fin_misalignment_scf)-2.*atan(ini_misalignment_scf), 2.*atan(fin_misalignment_scf)*180./_PI_ - 2.*atan(ini_misalignment_scf)*180./_PI_);
          }
          printf("    Final equation of state w0_scf and derivative wa0_scf:\n");
          printf("     -> w0_scf = %1.2e\n",-cos(pvecback[pba->index_bg_theta_scf]));
