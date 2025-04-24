@@ -721,7 +721,7 @@ int thermodynamics_helium_from_bbn(
   class_free(ddYHe);
   class_free(YHe_at_deltaN);
   class_free(ddYHe_at_deltaN);
-  class_free(pvecback);
+  //class_free(pvecback);
     
   return _SUCCESS_;
 }

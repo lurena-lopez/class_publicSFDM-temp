@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 
   /****** all calculations done, now free any remaining open memory ******/
 
-  tracked_free_all();
+  //tracked_free_all();
   
   if(failed)
     return _FAILURE_;
