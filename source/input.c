@@ -715,8 +715,8 @@ int input_shooting(struct file_content * pfc,
       }
 
       /* Free local variables */
-      free(x_inout);
-      free(dxdF);
+      class_free(x_inout);
+      class_free(dxdF);
     }
 
     if (input_verbose > 1) {
@@ -749,10 +749,10 @@ int input_shooting(struct file_content * pfc,
     parser_free(&(fzw.fc));
 
     /** Free arrays allocated */
-    free(unknown_parameter);
-    free(fzw.unknown_parameters_index);
-    free(fzw.target_name);
-    free(fzw.target_value);
+    class_free(unknown_parameter);
+    class_free(fzw.unknown_parameters_index);
+    class_free(fzw.target_name);
+    class_free(fzw.target_value);
   }
 
 
@@ -863,9 +863,9 @@ int input_shooting(struct file_content * pfc,
     parser_free(&(fzw.fc));
 
     /** Free arrays allocated */
-    free(fzw.unknown_parameters_index);
-    free(fzw.target_name);
-    free(fzw.target_value);
+    class_free(fzw.unknown_parameters_index);
+    class_free(fzw.target_name);
+    class_free(fzw.target_value);
   }
 
   return _SUCCESS_;
@@ -3000,7 +3000,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
     /* If we don't have perturbations, we should free the arrays again if necessary */
     else if (ppt->alpha_idm_dr != NULL) {
-      free(ppt->alpha_idm_dr);
+      class_free(ppt->alpha_idm_dr);
     }
   }
 
@@ -3045,7 +3045,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
     /* If we don't have perturbations, we should free the arrays again if necessary */
     else if (ppt->beta_idr != NULL) {
-      free(ppt->beta_idr);
+      class_free(ppt->beta_idr);
     }
   }
 
@@ -3962,7 +3962,7 @@ int input_prepare_pk_eq(struct precision * ppr,
                                  pvecback),
                pba->error_message, errmsg);
     pfo->pk_eq_w_and_Omega[pfo->pk_eq_size*index_pk_eq_z+pfo->index_pk_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
-    free(pvecback);
+    class_free(pvecback);
 
     class_call(background_free_noinput(pba),
                pba->error_message,
@@ -3993,7 +3993,7 @@ int input_prepare_pk_eq(struct precision * ppr,
               pfo->pk_eq_w_and_Omega[pfo->pk_eq_size*index_pk_eq_z+pfo->index_pk_eq_Omega_m]);
     }
   }
-  free(z);
+  class_free(z);
 
   /** Spline the table for later interpolation */
   class_call(array_spline_table_lines(pfo->pk_eq_tau,
@@ -4580,7 +4580,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
                errmsg,
                "You omitted to write a command for the external Pk");
     /* Complete set of parameters */
-    ppm->command = (char *) malloc (strlen(string1) + 1);
+    ppm->command = (char *) tracked_malloc (strlen(string1) + 1);
     strcpy(ppm->command, string1);
 
     /** 1.g.2) Command generating the table */
@@ -4716,7 +4716,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
         /* Complete set of parameters */
         ppt->selection_mean[i] = pointer1[i];
       }
-      free(pointer1);
+      class_free(pointer1);
       for (i=1; i<int1; i++) {       // first set all widths to default; correct eventually later
         /* Test */
         class_test(ppt->selection_mean[i]<=ppt->selection_mean[i-1],
@@ -4748,7 +4748,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
           class_stop(errmsg,
                      "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin widths.",ppt->selection_num,int1,ppt->selection_num);
         }
-        free(pointer1);
+        class_free(pointer1);
       }
 
       /* Read */
@@ -4772,7 +4772,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                      "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
                      ppt->selection_num,int1,ppt->selection_num);
         }
-        free(pointer1);
+        class_free(pointer1);
       }
 
       /* Read */
@@ -4796,7 +4796,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                      "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
                      ppt->selection_num,int1,ppt->selection_num);
         }
-        free(pointer1);
+        class_free(pointer1);
       }
     }
 
@@ -4903,7 +4903,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
       for (i=0; i<int1; i++) {
         pop->z_pk[i] = pointer1[i];
       }
-      free(pointer1);
+      class_free(pointer1);
     }
 
   }
@@ -5455,7 +5455,7 @@ int input_read_parameters_output(struct file_content * pfc,
     for (i=0; i<int1; i++) {
       ppt->k_output_values[i] = pointer1[i];
     }
-    free(pointer1);
+    class_free(pointer1);
     qsort (ppt->k_output_values, ppt->k_output_values_num, sizeof(double), compare_doubles);     // Sort the k_array using qsort
     ppt->store_perturbations = _TRUE_;
     pop->write_perturbations = _TRUE_;
