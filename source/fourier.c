@@ -558,7 +558,7 @@ int fourier_pk_at_k_and_z(
                  pfo->error_message,
                  pfo->error_message);
 
-      free(ddout_pk_at_z);
+      class_free(ddout_pk_at_z);
 
       // uncomment this part if you prefer a linear interpolation
 
@@ -611,7 +611,7 @@ int fourier_pk_at_k_and_z(
                    pfo->error_message,
                    pfo->error_message);
 
-        free(ddout_pk_ic_at_z);
+        class_free(ddout_pk_ic_at_z);
 
         /** --> convert each ic component from logarithmic to linear format */
 
@@ -710,13 +710,13 @@ int fourier_pk_at_k_and_z(
         }
       }
 
-      free(pk_primordial_k);
-      free(pk_primordial_kmin);
+      class_free(pk_primordial_k);
+      class_free(pk_primordial_kmin);
     }
 
-    free(out_pk_at_z);
+    class_free(out_pk_at_z);
     if (do_ic == _TRUE_) {
-      free(out_pk_ic_at_z);
+      class_free(out_pk_ic_at_z);
     }
   }
 
@@ -995,14 +995,14 @@ int fourier_pks_at_kvec_and_zvec(
     index_kvec++;
   }
 
-  free(ln_kvec);
+  class_free(ln_kvec);
   if (pfo->has_pk_m == _TRUE_) {
-    free(ln_pk_table);
-    free(ddln_pk_table);
+    class_free(ln_pk_table);
+    class_free(ddln_pk_table);
   }
   if (pfo->has_pk_cb == _TRUE_) {
-    free(ln_pk_cb_table);
-    free(ddln_pk_cb_table);
+    class_free(ln_pk_cb_table);
+    class_free(ddln_pk_cb_table);
   }
 
   return _SUCCESS_;
@@ -1159,8 +1159,8 @@ int fourier_sigmas_at_z(
 
   /** - free allocated arrays */
 
-  free(out_pk);
-  free(ddout_pk);
+  class_free(out_pk);
+  class_free(ddout_pk);
 
   return _SUCCESS_;
 }
@@ -1727,7 +1727,7 @@ int fourier_init(
               fprintf(stdout,
                       " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase the precision parameter nonlinear_min_k_max (currently at %e) until k_NL can be computed at the desired z.\n",z,ppr->nonlinear_min_k_max);
 
-              free(pvecback);
+              class_free(pvecback);
             }
 
             class_test(pfo->ln_tau_size_nl >1 && pfo->ln_tau_size_nl< 3, pfo->error_message, "Not enough redshifts had a non-linear correction computed, so spline-interpolation of the non-linear correction is impossible. Increase P_k_max_h/Mpc or P_k_max_1/Mpc or fourier_min_k_max.");
@@ -1768,14 +1768,14 @@ int fourier_init(
     /* --> free temporary arrays */
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++){
-      free(pk_nl[index_pk]);
-      free(lnpk_l[index_pk]);
-      free(ddlnpk_l[index_pk]);
+      class_free(pk_nl[index_pk]);
+      class_free(lnpk_l[index_pk]);
+      class_free(ddlnpk_l[index_pk]);
     }
 
-    free(pk_nl);
-    free(lnpk_l);
-    free(ddlnpk_l);
+    class_free(pk_nl);
+    class_free(lnpk_l);
+    class_free(ddlnpk_l);
 
     /** --> free the nonlinear workspace */
 
@@ -1816,61 +1816,61 @@ int fourier_free(
 
   if ((pfo->has_pk_matter == _TRUE_) || (pfo->method > nl_none)) {
 
-    free(pfo->k);
-    free(pfo->ln_k);
+    class_free(pfo->k);
+    class_free(pfo->ln_k);
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
-      free(pfo->ln_pk_ic_l[index_pk]);
-      free(pfo->ln_pk_l[index_pk]);
-      free(pfo->ln_pk_l_extra[index_pk]);
+      class_free(pfo->ln_pk_ic_l[index_pk]);
+      class_free(pfo->ln_pk_l[index_pk]);
+      class_free(pfo->ln_pk_l_extra[index_pk]);
       if (pfo->ln_tau_size>1) {
-        free(pfo->ddln_pk_ic_l[index_pk]);
-        free(pfo->ddln_pk_l[index_pk]);
-        free(pfo->ddln_pk_l_extra[index_pk]);
+        class_free(pfo->ddln_pk_ic_l[index_pk]);
+        class_free(pfo->ddln_pk_l[index_pk]);
+        class_free(pfo->ddln_pk_l_extra[index_pk]);
       }
     }
-    free(pfo->ln_pk_ic_l);
-    free(pfo->ln_pk_l);
-    free(pfo->ln_pk_l_extra);
+    class_free(pfo->ln_pk_ic_l);
+    class_free(pfo->ln_pk_l);
+    class_free(pfo->ln_pk_l_extra);
 
     if (pfo->has_pk_analytic_nowiggle == _TRUE_) {
-      free(pfo->ln_pk_l_an_extra);
-      free(pfo->ddln_pk_l_an_extra);
+      class_free(pfo->ln_pk_l_an_extra);
+      class_free(pfo->ddln_pk_l_an_extra);
     }
 
-    free (pfo->sigma8);
+    class_free(pfo->sigma8);
 
     if (pfo->ln_tau_size>1) {
-      free(pfo->ddln_pk_ic_l);
-      free(pfo->ddln_pk_l);
-      free(pfo->ddln_pk_l_extra);
-      free(pfo->ln_tau);
+      class_free(pfo->ddln_pk_ic_l);
+      class_free(pfo->ddln_pk_l);
+      class_free(pfo->ddln_pk_l_extra);
+      class_free(pfo->ln_tau);
     }
 
-    free(pfo->is_non_zero);
+    class_free(pfo->is_non_zero);
   }
 
   if (pfo->method > nl_none) {
 
-    free(pfo->tau);
+    class_free(pfo->tau);
     for (index_pk=0;index_pk<pfo->pk_size;index_pk++){
-      free(pfo->nl_corr_density[index_pk]);
-      free(pfo->k_nl[index_pk]);
-      free(pfo->ln_pk_nl[index_pk]);
+      class_free(pfo->nl_corr_density[index_pk]);
+      class_free(pfo->k_nl[index_pk]);
+      class_free(pfo->ln_pk_nl[index_pk]);
       if (pfo->ln_tau_size > 1)
-        free(pfo->ddln_pk_nl[index_pk]);
+        class_free(pfo->ddln_pk_nl[index_pk]);
     }
-    free(pfo->nl_corr_density);
-    free(pfo->k_nl);
-    free(pfo->ln_pk_nl);
+    class_free(pfo->nl_corr_density);
+    class_free(pfo->k_nl);
+    class_free(pfo->ln_pk_nl);
     if (pfo->ln_tau_size > 1)
-      free(pfo->ddln_pk_nl);
+      class_free(pfo->ddln_pk_nl);
   }
 
   if (pfo->has_pk_eq == _TRUE_) {
-    free(pfo->pk_eq_tau);
-    free(pfo->pk_eq_w_and_Omega);
-    free(pfo->pk_eq_ddw_and_ddOmega);
+    class_free(pfo->pk_eq_tau);
+    class_free(pfo->pk_eq_w_and_Omega);
+    class_free(pfo->pk_eq_ddw_and_ddOmega);
   }
 
   if (pfo->has_pk_numerical_nowiggle) {
@@ -2471,8 +2471,8 @@ int fourier_pk_linear(
     lnpk[index_k] = log(pk);
   }
 
-  free(primordial_pk);
-  free(pk_ic);
+  class_free(primordial_pk);
+  class_free(pk_ic);
 
   return _SUCCESS_;
 
@@ -2728,7 +2728,7 @@ int fourier_sigmas(
 
   /** - free allocated array */
 
-  free(array_for_sigma);
+  class_free(array_for_sigma);
 
   return _SUCCESS_;
 }
@@ -2815,8 +2815,10 @@ int fourier_sigma_at_z(
 
   /** - free allocated arrays */
 
-  free(out_pk);
-  free(ddout_pk);
+  class_free(out_pk);
+  class_free(ddout_pk);
 
   return _SUCCESS_;
 }
+//<<<<<<< HEAD
+//=======

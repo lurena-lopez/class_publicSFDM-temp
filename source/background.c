@@ -397,7 +397,7 @@ int background_functions(
   /* fluid's time-dependent equation of state parameter */
   double w_fld, dw_over_da, integral_fld;
   /* scalar field quantities */
-  double alpha_scf, theta_scf, y1_scf;
+  double phi, phi_prime;
   /* Since we only know a_prime_over_a after we have rho_tot,
      it is not possible to simply sum up p_tot_prime directly.
      Instead we sum up dp_dloga = p_prime/a_prime_over_a. The formula is
@@ -471,21 +471,21 @@ int background_functions(
 
   /* Scalar field */
   if (pba->has_scf == _TRUE_) {
-    alpha_scf = pvecback_B[pba->index_bi_alpha_scf];
-    theta_scf = pvecback_B[pba->index_bi_theta_scf];
-    y1_scf = pvecback_B[pba->index_bi_y1_scf];
-    pvecback[pba->index_bg_alpha_scf] = alpha_scf; // value of the scalar field Omega_phi
-    pvecback[pba->index_bg_theta_scf] = theta_scf; // value of the scalar field theta_phi
-    pvecback[pba->index_bg_y1_scf] = y1_scf; // value of the scalar field y1_phi
-        pvecback[pba->index_bg_rho_scf] = exp(2.*alpha_scf)*rho_tot/(1.-exp(2.*alpha_scf)); // energy of the scalar field alone
-    pvecback[pba->index_bg_p_scf] = -cos_scf(pba,theta_scf)*pvecback[pba->index_bg_rho_scf]; // pressure of the scalar field
-    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_rho_scf]*(sin_scf(pba,theta_scf)*(-3.*sin_scf(pba,theta_scf) + y1_scf) + 3.*cos_scf(pba,theta_scf)*(1.-cos_scf(pba,theta_scf)));
+    phi = pvecback_B[pba->index_bi_phi_scf];
+    phi_prime = pvecback_B[pba->index_bi_phi_prime_scf];
+    pvecback[pba->index_bg_phi_scf] = phi; // value of the scalar field phi
+    pvecback[pba->index_bg_phi_prime_scf] = phi_prime; // value of the scalar field phi derivative wrt conformal time
+    pvecback[pba->index_bg_V_scf] = V_scf(pba,phi); //V_scf(pba,phi); //write here potential as function of phi
+    pvecback[pba->index_bg_dV_scf] = dV_scf(pba,phi); // dV_scf(pba,phi); //potential' as function of phi
+    pvecback[pba->index_bg_ddV_scf] = ddV_scf(pba,phi); // ddV_scf(pba,phi); //potential'' as function of phi
+    pvecback[pba->index_bg_rho_scf] = (phi_prime*phi_prime/(2*a*a) + V_scf(pba,phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
+    pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
     rho_tot += pvecback[pba->index_bg_rho_scf];
     p_tot += pvecback[pba->index_bg_p_scf];
-    dp_dloga += pvecback[pba->index_bg_p_prime_scf];
+    dp_dloga += 0.0; /** <-- This depends on a_prime_over_a, so we cannot add it now! */
     //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
-    //rho_r += 3.*pvecback[pba->index_bg_p_scf]; //field pressure contributes radiation
-    //rho_m += pvecback[pba->index_bg_rho_scf] - 3.* pvecback[pba->index_bg_p_scf]; //the rest contributes matter
+    rho_r += 3.*pvecback[pba->index_bg_p_scf]; //field pressure contributes radiation
+    rho_m += pvecback[pba->index_bg_rho_scf] - 3.* pvecback[pba->index_bg_p_scf]; //the rest contributes matter
     //printf(" a= %e, Omega_scf = %f, \n ",a, pvecback[pba->index_bg_rho_scf]/rho_tot );
   }
 
@@ -589,6 +589,12 @@ int background_functions(
 
   /* Derivative of total pressure w.r.t. conformal time */
   pvecback[pba->index_bg_p_tot_prime] = a*pvecback[pba->index_bg_H]*dp_dloga;
+  if (pba->has_scf == _TRUE_) {
+    /** The contribution of scf was not added to dp_dloga, add p_scf_prime here: */
+    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_phi_prime_scf]*
+      (-pvecback[pba->index_bg_phi_prime_scf]*pvecback[pba->index_bg_H]/a-2./3.*pvecback[pba->index_bg_dV_scf]);
+    pvecback[pba->index_bg_p_tot_prime] += pvecback[pba->index_bg_p_prime_scf];
+  }
 
   /** - compute critical density */
   rho_crit = rho_tot-pba->K/a/a;
@@ -840,8 +846,6 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
-  pba->is_allocated = _TRUE_;
-
   return _SUCCESS_;
 
 }
@@ -866,8 +870,6 @@ int background_free(
              pba->error_message,
              pba->error_message);
 
-  pba->is_allocated = _FALSE_;
-
   return _SUCCESS_;
 }
 
@@ -883,13 +885,13 @@ int background_free_noinput(
                             struct background *pba
                             ) {
 
-  free(pba->tau_table);
-  free(pba->z_table);
-  free(pba->loga_table);
-  free(pba->d2tau_dz2_table);
-  free(pba->d2z_dtau2_table);
-  free(pba->background_table);
-  free(pba->d2background_dloga2_table);
+  class_free(pba->tau_table);
+  class_free(pba->z_table);
+  class_free(pba->loga_table);
+  class_free(pba->d2tau_dz2_table);
+  class_free(pba->d2z_dtau2_table);
+  class_free(pba->background_table);
+  class_free(pba->d2background_dloga2_table);
 
   return _SUCCESS_;
 }
@@ -909,40 +911,40 @@ int background_free_input(
 
   if (pba->Omega0_ncdm_tot != 0.) {
     for (k=0; k<pba->N_ncdm; k++) {
-      free(pba->q_ncdm[k]);
-      free(pba->w_ncdm[k]);
-      free(pba->q_ncdm_bg[k]);
-      free(pba->w_ncdm_bg[k]);
-      free(pba->dlnf0_dlnq_ncdm[k]);
+      class_free(pba->q_ncdm[k]);
+      class_free(pba->w_ncdm[k]);
+      class_free(pba->q_ncdm_bg[k]);
+      class_free(pba->w_ncdm_bg[k]);
+      class_free(pba->dlnf0_dlnq_ncdm[k]);
     }
-    free(pba->ncdm_quadrature_strategy);
-    free(pba->ncdm_input_q_size);
-    free(pba->ncdm_qmax);
-    free(pba->q_ncdm);
-    free(pba->w_ncdm);
-    free(pba->q_ncdm_bg);
-    free(pba->w_ncdm_bg);
-    free(pba->dlnf0_dlnq_ncdm);
-    free(pba->q_size_ncdm);
-    free(pba->q_size_ncdm_bg);
-    free(pba->M_ncdm);
-    free(pba->T_ncdm);
-    free(pba->ksi_ncdm);
-    free(pba->deg_ncdm);
-    free(pba->Omega0_ncdm);
-    free(pba->m_ncdm_in_eV);
-    free(pba->factor_ncdm);
+    class_free(pba->ncdm_quadrature_strategy);
+    class_free(pba->ncdm_input_q_size);
+    class_free(pba->ncdm_qmax);
+    class_free(pba->q_ncdm);
+    class_free(pba->w_ncdm);
+    class_free(pba->q_ncdm_bg);
+    class_free(pba->w_ncdm_bg);
+    class_free(pba->dlnf0_dlnq_ncdm);
+    class_free(pba->q_size_ncdm);
+    class_free(pba->q_size_ncdm_bg);
+    class_free(pba->M_ncdm);
+    class_free(pba->T_ncdm);
+    class_free(pba->ksi_ncdm);
+    class_free(pba->deg_ncdm);
+    class_free(pba->Omega0_ncdm);
+    class_free(pba->m_ncdm_in_eV);
+    class_free(pba->factor_ncdm);
     if (pba->got_files!=NULL)
-      free(pba->got_files);
+      class_free(pba->got_files);
     if (pba->ncdm_psd_files!=NULL)
-      free(pba->ncdm_psd_files);
+      class_free(pba->ncdm_psd_files);
     if (pba->ncdm_psd_parameters!=NULL)
-      free(pba->ncdm_psd_parameters);
+      class_free(pba->ncdm_psd_parameters);
   }
 
   if (pba->Omega0_scf != 0.) {
     if (pba->scf_parameters != NULL)
-      free(pba->scf_parameters);
+      class_free(pba->scf_parameters);
   }
   return _SUCCESS_;
 }
@@ -1058,9 +1060,11 @@ int background_indices(
   class_define_index(pba->index_bg_rho_dr,pba->has_dr,index_bg,1);
 
   /* - indices for scalar field */
-  class_define_index(pba->index_bg_alpha_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_theta_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_y1_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_phi_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_phi_prime_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_V_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_dV_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_ddV_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_p_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_p_prime_scf,pba->has_scf,index_bg,1);
@@ -1158,9 +1162,8 @@ int background_indices(
   class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
-  class_define_index(pba->index_bi_alpha_scf,pba->has_scf,index_bi,1);
-  class_define_index(pba->index_bi_theta_scf,pba->has_scf,index_bi,1);
-  class_define_index(pba->index_bi_y1_scf,pba->has_scf,index_bi,1);
+  class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
+  class_define_index(pba->index_bi_phi_prime_scf,pba->has_scf,index_bi,1);
 
   /* End of {B} variables */
   pba->bi_B_size = index_bi;
@@ -1439,8 +1442,9 @@ int background_ncdm_init(
                                pba->error_message),
                  pba->error_message,
                  pba->error_message);
-      class_realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double), pba->error_message);
-      class_realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double), pba->error_message);
+      pba->q_ncdm[k]=tracked_realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+      pba->w_ncdm[k]=tracked_realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+
 
       if (pba->background_verbose > 0) {
         printf("ncdm species i=%d sampled with %d points for purpose of perturbation integration\n",
@@ -1466,8 +1470,8 @@ int background_ncdm_init(
                  pba->error_message,
                  pba->error_message);
 
-      class_realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double), pba->error_message);
-      class_realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double), pba->error_message);
+      pba->q_ncdm_bg[k]=tracked_realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+      pba->w_ncdm_bg[k]=tracked_realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
 
       /** - in verbose mode, inform user of number of sampled momenta
           for background quantities */
@@ -1560,9 +1564,9 @@ int background_ncdm_init(
 
     /* If allocated, deallocate interpolation table:  */
     if ((pba->got_files!=NULL)&&(pba->got_files[k]==_TRUE_)) {
-      free(pbadist.q);
-      free(pbadist.f0);
-      free(pbadist.d2f0);
+      class_free(pbadist.q);
+      class_free(pbadist.f0);
+      class_free(pbadist.d2f0);
     }
   }
 
@@ -1880,13 +1884,11 @@ int background_solve(
   double comoving_radius=0.;
   /* conformal distance in Mpc (equal to comoving radius in flat case) */
   double conformal_distance;
-  /* Initial misalignment of scf */
-  double ini_misalignment_scf=0.,fin_misalignment_scf=0.;
 
   /* evolvers */
-  extern int evolver_rk(EVOLVER_PROTOTYPE);
-  extern int evolver_ndf15(EVOLVER_PROTOTYPE);
-  int (*generic_evolver)(EVOLVER_PROTOTYPE) = evolver_ndf15;
+  extern int evolver_rk();
+  extern int evolver_ndf15();
+  int (*generic_evolver)() = evolver_ndf15;
 
   /* initial and final loga values */
   double loga_ini, loga_final;
@@ -2068,31 +2070,19 @@ int background_solve(
       printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
     if (pba->has_scf == _TRUE_) {
-        printf(" -> Scalar field details:\n");
-        printf(" -> Omega_scf = %g, wished %g\n", exp(2.*pvecback[pba->index_bg_alpha_scf]), pba->Omega0_scf);
-        printf(" -> Mass_scf = %1.2e [eV], %1.2e [1/Mpc], %1.2e [H_0]\n", 3.19696e-30*pvecback[pba->index_bg_y1_scf]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_scf]*pvecback[pba->index_bg_H], 0.5*pvecback[pba->index_bg_y1_scf]);
-        printf("    -> wished = %1.2e [eV]\n", pow(10.,pba->scf_parameters[0]));
-        printf(" -> lambda_scf = %1.2e\n",pba->scf_parameters[1]);
-        if (pba->scf_parameters[1] > 0.){
-          ini_misalignment_scf = pba->y1_ini_scf*exp(-pba->alpha_ini_scf)*
-          pow(1.-pba->scf_parameters[1]*exp(2.*pba->alpha_ini_scf)*(1.+cos_scf(pba,pba->theta_ini_scf))/pow(pba->y1_ini_scf,2.),0.5)/pow(2.*pba->scf_parameters[1],0.5);
-          fin_misalignment_scf = pvecback[pba->index_bg_y1_scf]*exp(-pvecback[pba->index_bg_alpha_scf])*
-            pow(1.-pba->scf_parameters[1]*exp(2.*pvecback[pba->index_bg_alpha_scf])*(1.+cos_scf(pba,pvecback[pba->index_bg_theta_scf]))/pow(pvecback[pba->index_bg_y1_scf],2.),0.5)/pow(2.*pba->scf_parameters[1],0.5);
-          printf("    Initial field misalignment:\n");
-          printf("     -> phi_ini/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(ini_misalignment_scf), 2.*atan(ini_misalignment_scf)*180./_PI_);
-          printf("    Final field misalignment:\n");
-          printf("     -> phi_ini/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(fin_misalignment_scf), 2.*atan(fin_misalignment_scf)*180./_PI_);
-          printf("    Cosmic field excursion:\n");
-          printf("     -> Delta phi/f = %1.2e [Rad], %1.2e [Deg]\n",2.*atan(fin_misalignment_scf)-2.*atan(ini_misalignment_scf), 2.*atan(fin_misalignment_scf)*180./_PI_ - 2.*atan(ini_misalignment_scf)*180./_PI_);
-         }
-         printf("    Final equation of state w0_scf and derivative wa0_scf:\n");
-         printf("     -> w0_scf = %1.2e\n",-cos(pvecback[pba->index_bg_theta_scf]));
-         printf("     -> wa0_scf = %1.2e\n",-sin(pvecback[pba->index_bg_theta_scf])*(3.*sin(pvecback[pba->index_bg_theta_scf])
-                       -pvecback[pba->index_bg_y1_scf]*pow(1.-pba->scf_parameters[1]*exp(2.*pvecback[pba->index_bg_alpha_scf])*(1.+cos(pvecback[pba->index_bg_theta_scf]))/pow(pvecback[pba->index_bg_y1_scf],2.),0.5)));
-    }
-    if (pba->has_lambda == _TRUE_) {
-      printf("    -> Omega_Lambda = %g, wished %g\n",
+      printf("    Scalar field details:\n");
+      printf("     -> Omega_scf = %g, wished %g\n",
+             pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_scf]/pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_crit], pba->Omega0_scf);
+      if (pba->has_lambda == _TRUE_) {
+        printf("     -> Omega_Lambda = %g, wished %g\n",
                pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_lambda]/pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_crit], pba->Omega0_lambda);
+      }
+      printf("     -> parameters: [lambda, alpha, A, B] = \n");
+      printf("                    [");
+      for (index_scf=0; index_scf<pba->scf_parameters_size-1; index_scf++) {
+        printf("%.3f, ",pba->scf_parameters[index_scf]);
+      }
+      printf("%.3f]\n",pba->scf_parameters[pba->scf_parameters_size-1]);
     }
   }
 
@@ -2116,9 +2106,9 @@ int background_solve(
     }
   }
 
-  free(pvecback);
-  free(pvecback_integration);
-  free(used_in_output);
+  class_free(pvecback);
+  class_free(pvecback_integration);
+  class_free(used_in_output);
 
   return _SUCCESS_;
 
@@ -2272,9 +2262,31 @@ int background_initial_conditions(
    * - is rho_ur all there is early on?
    */
   if (pba->has_scf == _TRUE_) {
-    pvecback_integration[pba->index_bi_alpha_scf] = pba->alpha_ini_scf;
-    pvecback_integration[pba->index_bi_theta_scf] = pba->theta_ini_scf;
-    pvecback_integration[pba->index_bi_y1_scf] = pba->y1_ini_scf;
+    scf_lambda = pba->scf_parameters[0];
+    if (pba->attractor_ic_scf == _TRUE_) {
+      pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
+        log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
+      if (3.*pow(scf_lambda,2)-12. < 0) {
+        /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
+        pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to do the work
+        if (pba->background_verbose > 0) {
+          printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
+        }
+      }
+      pvecback_integration[pba->index_bi_phi_prime_scf] = 2.*a*sqrt(V_scf(pba,pvecback_integration[pba->index_bi_phi_scf]))*pba->phi_prime_ini_scf;
+    }
+    else {
+      printf("Not using attractor initial conditions\n");
+      /** - --> If no attractor initial conditions are assigned, gets the provided ones. */
+      pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
+      pvecback_integration[pba->index_bi_phi_prime_scf] = pba->phi_prime_ini_scf;
+    }
+    class_test(!isfinite(pvecback_integration[pba->index_bi_phi_scf]) ||
+               !isfinite(pvecback_integration[pba->index_bi_phi_scf]),
+               pba->error_message,
+               "initial phi = %e phi_prime = %e -> check initial conditions",
+               pvecback_integration[pba->index_bi_phi_scf],
+               pvecback_integration[pba->index_bi_phi_scf]);
   }
 
   /* Infer pvecback from pvecback_integration */
@@ -2389,7 +2401,7 @@ int background_find_equality(
     printf("    corresponding to conformal time = %f Mpc\n",pba->tau_eq);
   }
 
-  free(pvecback);
+  class_free(pvecback);
 
   return _SUCCESS_;
 
@@ -2428,9 +2440,9 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)rho_idm",pba->has_idm);
   if (pba->has_ncdm == _TRUE_) {
     for (n=0; n<pba->N_ncdm; n++) {
-      class_sprintf(tmp,"(.)rho_ncdm[%d]",n);
+      sprintf(tmp,"(.)rho_ncdm[%d]",n);
       class_store_columntitle(titles,tmp,_TRUE_);
-      class_sprintf(tmp,"(.)p_ncdm[%d]",n);
+      sprintf(tmp,"(.)p_ncdm[%d]",n);
       class_store_columntitle(titles,tmp,_TRUE_);
     }
   }
@@ -2446,9 +2458,11 @@ int background_output_titles(
   class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_prime_scf",pba->has_scf);
-  class_store_columntitle(titles,"alpha_scf",pba->has_scf);
-  class_store_columntitle(titles,"theta_scf",pba->has_scf);
-  class_store_columntitle(titles,"y1_scf",pba->has_scf);
+  class_store_columntitle(titles,"phi_scf",pba->has_scf);
+  class_store_columntitle(titles,"phi'_scf",pba->has_scf);
+  class_store_columntitle(titles,"V_scf",pba->has_scf);
+  class_store_columntitle(titles,"V'_scf",pba->has_scf);
+  class_store_columntitle(titles,"V''_scf",pba->has_scf);
 
   class_store_columntitle(titles,"(.)rho_tot",_TRUE_);
   class_store_columntitle(titles,"(.)p_tot",_TRUE_);
@@ -2517,9 +2531,11 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_prime_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_alpha_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_theta_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_y1_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_phi_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_dV_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_ddV_scf],pba->has_scf,storeidx);
 
     class_store_double(dataptr,pvecback[pba->index_bg_rho_tot],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_tot],_TRUE_,storeidx);
@@ -2577,7 +2593,7 @@ int background_derivs(
 
   struct background_parameters_and_workspace * pbpaw;
   struct background * pba;
-  double * pvecback, a, H, rho_M, w_tot;
+  double * pvecback, a, H, rho_M;
 
   pbpaw = parameters_and_workspace;
   pba =  pbpaw->pba;
@@ -2636,13 +2652,10 @@ int background_derivs(
   }
 
   if (pba->has_scf == _TRUE_) {
-      w_tot = pvecback[pba->index_bg_p_tot]/pvecback[pba->index_bg_rho_tot];
-      /** - Scalar field dark matter EoM */
-      dy[pba->index_bi_alpha_scf] = 1.5*(w_tot + cos_scf(pba,y[pba->index_bi_theta_scf]));
-      
-      dy[pba->index_bi_theta_scf] = -3.*sin_scf(pba,y[pba->index_bi_theta_scf]) + y[pba->index_bi_y1_scf]*pow(1. - pba->scf_parameters[1]*exp(2.*y[pba->index_bi_alpha_scf])*(1. + cos_scf(pba,y[pba->index_bi_theta_scf]))/pow(y[pba->index_bi_y1_scf],2.),0.5);
-      
-      dy[pba->index_bi_y1_scf] = 1.5*(1. + w_tot)*y[pba->index_bi_y1_scf];
+    /** - Scalar field equation: \f$ \phi'' + 2 a H \phi' + a^2 dV = 0 \f$  (note H is wrt cosmological time)
+        written as \f$ d\phi/dlna = phi' / (aH) \f$ and \f$ d\phi'/dlna = -2*phi' - (a/H) dV \f$ */
+    dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf]/a/H;
+    dy[pba->index_bi_phi_prime_scf] = - 2*y[pba->index_bi_phi_prime_scf] - a*dV_scf(pba,y[pba->index_bi_phi_scf])/H ;
   }
 
   return _SUCCESS_;
@@ -2860,22 +2873,126 @@ int background_output_budget(
 }
 
 /**
- * Scalar field potential
+ * Scalar field potential and its derivatives with respect to the field _scf
+ * For Albrecht & Skordis model: 9908085
+ * - \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
+ * - \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential)
+ * - \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump)
+ *
+ * TODO:
+ * - Add some functionality to include different models/potentials (tuning would be difficult, though)
+ * - Generalize to Kessence/Horndeski/PPF and/or couplings
+ * - A default module to numerically compute the derivatives when no analytic functions are given should be added.
+ * - Numerical derivatives may further serve as a consistency check.
+ *
+ */
+
+/**
+ *
+ * The units of phi, tau in the derivatives and the potential V are the following:
+ * - phi is given in units of the reduced Planck mass \f$ m_{pl} = (8 \pi G)^{(-1/2)}\f$
+ * - tau in the derivative is given in units of Mpc.
+ * - the potential \f$ V(\phi) \f$ is given in units of \f$ m_{pl}^2/Mpc^2 \f$.
+ * With this convention, we have
+ * \f$ \rho^{class} = (8 \pi G)/3 \rho^{physical} = 1/(3 m_{pl}^2) \rho^{physical} = 1/3 * [ 1/(2a^2) (\phi')^2 + V(\phi) ] \f$
+ and \f$ \rho^{class} \f$ has the proper dimension \f$ Mpc^-2 \f$.
 */
 
-/** Cosine and sine modified functions to kill oscillations with a very high frequency */
-double cos_scf(struct background *pba,
-         double theta_phi
-         ) {
-  double theta_thresh = 1.e2;
-    double theta_tol = 1.;//1.e-2;
-  return 0.5*(1.-tanh(theta_tol*(theta_phi*theta_phi-theta_thresh*theta_thresh)))*cos(theta_phi);
+double V_e_scf(struct background *pba,
+               double phi
+               ) {
+  double scf_lambda = pba->scf_parameters[0];
+  //  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  //  double scf_B      = pba->scf_parameters[3];
+
+  return  exp(-scf_lambda*phi);
 }
 
-double sin_scf(struct background *pba,
-         double theta_phi
-         ) {
-  double theta_thresh = 1.e2;
-    double theta_tol = 1.;//1.e-2;
-  return 0.5*(1.-tanh(theta_tol*(theta_phi*theta_phi-theta_thresh*theta_thresh)))*sin(theta_phi);
+double dV_e_scf(struct background *pba,
+                double phi
+                ) {
+  double scf_lambda = pba->scf_parameters[0];
+  //  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  //  double scf_B      = pba->scf_parameters[3];
+
+  return -scf_lambda*V_scf(pba,phi);
+}
+
+double ddV_e_scf(struct background *pba,
+                 double phi
+                 ) {
+  double scf_lambda = pba->scf_parameters[0];
+  //  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  //  double scf_B      = pba->scf_parameters[3];
+
+  return pow(-scf_lambda,2)*V_scf(pba,phi);
+}
+
+
+/** parameters and functions for the polynomial coefficient
+ * \f$ V_p = (\phi - B)^\alpha + A \f$(polynomial bump)
+ *
+ * double scf_alpha = 2;
+ *
+ * double scf_B = 34.8;
+ *
+ * double scf_A = 0.01; (values for their Figure 2)
+ */
+
+double V_p_scf(
+               struct background *pba,
+               double phi) {
+  //  double scf_lambda = pba->scf_parameters[0];
+  double scf_alpha  = pba->scf_parameters[1];
+  double scf_A      = pba->scf_parameters[2];
+  double scf_B      = pba->scf_parameters[3];
+
+  return  pow(phi - scf_B,  scf_alpha) +  scf_A;
+}
+
+double dV_p_scf(
+                struct background *pba,
+                double phi) {
+
+  //  double scf_lambda = pba->scf_parameters[0];
+  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  double scf_B      = pba->scf_parameters[3];
+
+  return   scf_alpha*pow(phi -  scf_B,  scf_alpha - 1);
+}
+
+double ddV_p_scf(
+                 struct background *pba,
+                 double phi) {
+  //  double scf_lambda = pba->scf_parameters[0];
+  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  double scf_B      = pba->scf_parameters[3];
+
+  return  scf_alpha*(scf_alpha - 1.)*pow(phi -  scf_B,  scf_alpha - 2);
+}
+
+/** Fianlly we can obtain the overall potential \f$ V = V_p*V_e \f$
+ */
+
+double V_scf(
+             struct background *pba,
+             double phi) {
+  return  V_e_scf(pba,phi)*V_p_scf(pba,phi);
+}
+
+double dV_scf(
+              struct background *pba,
+              double phi) {
+  return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
+}
+
+double ddV_scf(
+               struct background *pba,
+               double phi) {
+  return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
 }

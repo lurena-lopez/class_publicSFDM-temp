@@ -446,7 +446,7 @@ int array_spline(
     *(array+k*n_columns+index_ddydx2) = *(array+k*n_columns+index_ddydx2) *
       *(array+(k+1)*n_columns+index_ddydx2) + u[k];
 
-  free(u);
+  class_free(u);
 
   return _SUCCESS_;
 }
@@ -472,6 +472,7 @@ int array_spline_table_line_to_line(
              "no possible spline with less than three lines");
 
   u = (double*)malloc((n_lines-1) * sizeof(double));
+    
   if (u == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -547,7 +548,7 @@ int array_spline_table_line_to_line(
     *(array+k*n_columns+index_ddydx2) = *(array+k*n_columns+index_ddydx2) *
       *(array+(k+1)*n_columns+index_ddydx2) + u[k];
 
-  free(u);
+  class_free(u);
 
   return _SUCCESS_;
  }
@@ -706,10 +707,10 @@ int array_spline_table_lines(
     }
   }
 
-  free(qn);
-  free(un);
-  free(p);
-  free(u);
+  class_free(qn);
+  class_free(un);
+  class_free(p);
+  class_free(u);
 
   return _SUCCESS_;
  }
@@ -739,6 +740,7 @@ int array_logspline_table_lines(
   p = (double*)malloc(y_size * sizeof(double));
   qn = (double*)malloc(y_size * sizeof(double));
   un = (double*)malloc(y_size * sizeof(double));
+
   if (u == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -868,10 +870,10 @@ int array_logspline_table_lines(
     }
   }
 
-  free(qn);
-  free(un);
-  free(p);
-  free(u);
+  class_free(qn);
+  class_free(un);
+  class_free(p);
+  class_free(u);
 
   return _SUCCESS_;
  }
@@ -901,6 +903,7 @@ int array_spline_table_columns(
   p = (double*)malloc(y_size * sizeof(double));
   qn = (double*)malloc(y_size * sizeof(double));
   un = (double*)malloc(y_size * sizeof(double));
+
   if (u == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1039,10 +1042,10 @@ int array_spline_table_columns(
     }
   }
 
-  free(qn);
-  free(p);
-  free(u);
-  free(un);
+  class_free(qn);
+  class_free(p);
+  class_free(u);
+  class_free(un);
 
   return _SUCCESS_;
  }
@@ -1069,6 +1072,7 @@ int array_spline_table_columns2(
   p = (double*)malloc(y_size * sizeof(double));
   qn = (double*)malloc(y_size * sizeof(double));
   un = (double*)malloc(y_size * sizeof(double));
+
   if (u == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1180,10 +1184,10 @@ int array_spline_table_columns2(
 
   class_finish_parallel();
 
-  free(qn);
-  free(p);
-  free(u);
-  free(un);
+  class_free(qn);
+  class_free(p);
+  class_free(u);
+  class_free(un);
 
   return _SUCCESS_;
  }
@@ -1210,6 +1214,7 @@ int array_spline_table_one_column(
   double dy_last;
 
   u = (double*)malloc((x_size-1) * sizeof(double));
+
   if (u == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1317,7 +1322,7 @@ int array_spline_table_one_column(
 
   }
 
-  free(u);
+  class_free(u);
 
   return _SUCCESS_;
 }
@@ -1345,6 +1350,7 @@ int array_logspline_table_one_column(
   double dy_last;
 
   u = (double*)malloc((x_stop-1) * sizeof(double));
+
   if (u == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1453,7 +1459,7 @@ int array_logspline_table_one_column(
 
   }
 
-  free(u);
+  class_free(u);
 
   return _SUCCESS_;
 }
@@ -3139,6 +3145,7 @@ int array_smooth_trg(double * array,
   double *coeff;
 
   smooth=(double*)malloc(k_size*sizeof(double));
+
   if (smooth == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate smooth",__func__,__LINE__);
     return _FAILURE_;
@@ -3250,8 +3257,8 @@ int array_smooth_trg(double * array,
   for (i=starting_k; i<k_size-radius; i++)
     array[i+k_size*index_eta] = smooth[i];
 
-  free(smooth);
-  free(coeff);
+  class_free(smooth);
+  class_free(coeff);
 
   return _SUCCESS_;
 
@@ -3269,6 +3276,7 @@ int array_smooth(double * array,
   double weigth;
 
   smooth=(double*)malloc(n_lines*sizeof(double));
+
   if (smooth == NULL) {
     class_sprintf(errmsg,"%s(L:%d) Cannot allocate smooth",__func__,__LINE__);
     return _FAILURE_;
@@ -3289,7 +3297,7 @@ int array_smooth(double * array,
   for (i=0; i<n_lines; i++)
     array[i*n_columns+index] = smooth[i];
 
-  free(smooth);
+  class_free(smooth);
 
   return _SUCCESS_;
 

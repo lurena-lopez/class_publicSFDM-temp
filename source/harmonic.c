@@ -338,24 +338,24 @@ int harmonic_free(
     if (phr->ct_size > 0) {
 
       for (index_md = 0; index_md < phr->md_size; index_md++) {
-        free(phr->l_max_ct[index_md]);
-        free(phr->cl[index_md]);
-        free(phr->ddcl[index_md]);
+        class_free(phr->l_max_ct[index_md]);
+        class_free(phr->cl[index_md]);
+        class_free(phr->ddcl[index_md]);
       }
-      free(phr->l);
-      free(phr->l_size);
-      free(phr->l_max_ct);
-      free(phr->l_max);
-      free(phr->cl);
-      free(phr->ddcl);
+      class_free(phr->l);
+      class_free(phr->l_size);
+      class_free(phr->l_max_ct);
+      class_free(phr->l_max);
+      class_free(phr->cl);
+      class_free(phr->ddcl);
     }
 
     for (index_md=0; index_md < phr->md_size; index_md++)
-      free(phr->is_non_zero[index_md]);
+      class_free(phr->is_non_zero[index_md]);
 
-    free(phr->is_non_zero);
-    free(phr->ic_size);
-    free(phr->ic_ic_size);
+    class_free(phr->is_non_zero);
+    class_free(phr->ic_size);
+    class_free(phr->ic_ic_size);
 
   }
   phr->is_allocated = _FALSE_;
@@ -786,9 +786,50 @@ int harmonic_cls(
               free(transfer_ic1);
               free(transfer_ic2);
 
-              return _SUCCESS_;
-            );
-          } /* end of loop over l */
+//<<<<<<< HEAD
+//              return _SUCCESS_;
+//            );
+//          } /* end of loop over l */
+//=======
+#pragma omp flush(abort)
+
+              class_call_parallel(harmonic_compute_cl(pba,
+                                                      ppt,
+                                                      ptr,
+                                                      ppm,
+                                                      phr,
+                                                      index_md,
+                                                      index_ic1,
+                                                      index_ic2,
+                                                      index_l,
+                                                      cl_integrand_num_columns,
+                                                      cl_integrand,
+                                                      primordial_pk,
+                                                      transfer_ic1,
+                                                      transfer_ic2),
+                                  phr->error_message,
+                                  phr->error_message);
+
+            } /* end of loop over l */
+
+#ifdef _OPENMP
+            tstop = omp_get_wtime();
+            if (phr->harmonic_verbose > 1)
+              printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
+                     __func__,tstop-tstart,omp_get_thread_num());
+#endif
+            class_free(cl_integrand);
+
+            class_free(primordial_pk);
+
+            class_free(transfer_ic1);
+
+            class_free(transfer_ic2);
+
+          } /* end of parallel region */
+
+          if (abort == _TRUE_) return _FAILURE_;
+//>>>>>>> repoB/gc_tracked_3.2.0
 
         }
         else {
@@ -1339,8 +1380,8 @@ int harmonic_compute_cl(
   }
 
   if (ppt->has_cl_number_count == _TRUE_ && _scalars_) {
-    free(transfer_ic1_nc);
-    free(transfer_ic2_nc);
+    class_free(transfer_ic1_nc);
+    class_free(transfer_ic2_nc);
   }
 
   return _SUCCESS_;
