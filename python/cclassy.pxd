@@ -445,7 +445,15 @@ cdef extern from "class.h":
         FileArg * value
         short * read
 
-    void tracked_free_all()
+    void lensing_free(void*)
+    void harmonic_free(void*)
+    void transfer_free(void*)
+    void primordial_free(void*)
+    void perturbations_free(void*)
+    void thermodynamics_free(void*)
+    void background_free(void*)
+    void fourier_free(void*)
+    void distortions_free(void*)
 
     cdef int _FAILURE_
     cdef int _FALSE_

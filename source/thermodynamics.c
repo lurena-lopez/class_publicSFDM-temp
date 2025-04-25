@@ -424,7 +424,7 @@ int thermodynamics_init(
              pth->error_message,
              pth->error_message);
 
-  class_free(pvecback);
+  free(pvecback);
 
   pth->is_allocated = _TRUE_;
 
@@ -450,10 +450,10 @@ int thermodynamics_free(
   }
 
   /* Free thermodynamics-related functions */
-  class_free(pth->z_table);
-  class_free(pth->tau_table);
-  class_free(pth->thermodynamics_table);
-  class_free(pth->d2thermodynamics_dz2_table);
+  free(pth->z_table);
+  free(pth->tau_table);
+  free(pth->thermodynamics_table);
+  free(pth->d2thermodynamics_dz2_table);
 
   class_call(thermodynamics_free_input(pth),
              pth->error_message,
@@ -569,10 +569,6 @@ int thermodynamics_helium_from_bbn(
               -pvecback[pba->index_bg_rho_g])
     /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);
 
-//<<<<<<< HEAD
-//=======
-//  class_free(pvecback);
-//>>>>>>> repoB/gc_tracked_3.2.0
 
   //  printf("Neff early = %g, Neff at bbn: %g\n",pba->Neff,Neff_bbn);
 
@@ -721,13 +717,13 @@ int thermodynamics_helium_from_bbn(
   }
 
   /** - deallocate arrays */
-  class_free(omegab);
-  class_free(deltaN);
-  class_free(YHe);
-  class_free(ddYHe);
-  class_free(YHe_at_deltaN);
-  class_free(ddYHe_at_deltaN);
-  class_free(pvecback);
+  free(omegab);
+  free(deltaN);
+  free(YHe);
+  free(ddYHe);
+  free(YHe_at_deltaN);
+  free(ddYHe_at_deltaN);
+  free(pvecback);
 
   return _SUCCESS_;
 }
@@ -1712,8 +1708,8 @@ int thermodynamics_solve(
                pth->error_message);
   }
 
-  class_free(interval_limit);
-  class_free(mz_output);
+  free(interval_limit);
+  free(mz_output);
 
   return _SUCCESS_;
 
@@ -1880,8 +1876,8 @@ int thermodynamics_workspace_free(
                                   struct thermo_workspace * ptw
                                   ) {
 
-  class_free(ptw->ptdw->ap_z_limits);
-  class_free(ptw->ptdw->ap_z_limits_delta);
+  free(ptw->ptdw->ap_z_limits);
+  free(ptw->ptdw->ap_z_limits_delta);
 
   switch (pth->recombination) {
 
@@ -1889,19 +1885,19 @@ int thermodynamics_workspace_free(
     class_call(thermodynamics_hyrec_free(ptw->ptdw->phyrec),
                ptw->ptdw->phyrec->error_message,
                pth->error_message);
-    class_free(ptw->ptdw->phyrec);
+    free(ptw->ptdw->phyrec);
     break;
 
   case recfast:
-    class_free(ptw->ptdw->precfast);
+    free(ptw->ptdw->precfast);
     break;
   }
 
-  class_free(ptw->ptrp->reionization_parameters);
-  class_free(ptw->ptdw);
-  class_free(ptw->ptrp);
+  free(ptw->ptrp->reionization_parameters);
+  free(ptw->ptdw);
+  free(ptw->ptrp);
 
-  class_free(ptw);
+  free(ptw);
 
   return _SUCCESS_;
 }
@@ -3143,10 +3139,10 @@ int thermodynamics_vector_free(
                                struct thermo_vector * tv
                                ) {
 
-  class_free(tv->y);
-  class_free(tv->dy);
-  class_free(tv->used_in_output);
-  class_free(tv);
+  free(tv->y);
+  free(tv->dy);
+  free(tv->used_in_output);
+  free(tv);
 
   return _SUCCESS_;
 }
@@ -3321,7 +3317,7 @@ int thermodynamics_calculate_damping_scale(
              pth->error_message,
              pth->error_message);
 
-  class_free(tau_table_growing);
+  free(tau_table_growing);
 
   /* we could now write the result as r_d = 2pi * sqrt(integral),
    *  but we will first better acount for the contribution frokm the tau_ini boundary.
@@ -4769,7 +4765,7 @@ int thermodynamics_idm_initial_temperature(
   /* This formula (assuming alpha,beta,epsilon=const) approximates the steady-state solution of the IDM temperature evolution equation */
   ptdw->T_idm = (alpha + beta + epsilon * pba->T_idr/pba->T_cmb)/(1.+epsilon+alpha+beta) * pba->T_cmb * (1.+z_ini);
 
-  class_free(pvecback);
+  free(pvecback);
 
   return _SUCCESS_;
 }

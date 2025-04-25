@@ -10,7 +10,6 @@ January 2015 - added cubic interpolation for non-evenly spaced table)
 #include <string.h>
 
 #include "hyrectools.h"
-#include "alloc_track.h"
 
 
 /******************************************************************************************************
@@ -31,7 +30,7 @@ Creates a [n1] array.
 
 double *create_1D_array(unsigned n1, int *error, char error_message[SIZE_ErrorM]){
 
-  double *matrix = (double *) tracked_calloc(n1, sizeof(double));
+  double *matrix = (double *) calloc(n1, sizeof(double));
   char sub_message[128];
   if (*error == 1) return matrix;
    
@@ -50,7 +49,7 @@ Creates a [n1][n2] array.
 double **create_2D_array(unsigned n1, unsigned n2, int *error, char error_message[SIZE_ErrorM]){
   
   unsigned i;
-  double **matrix = (double **) tracked_calloc(n1, sizeof(double *));
+  double **matrix = (double **) calloc(n1, sizeof(double *));
   char sub_message[128];
   if (*error == 1) return matrix;
    
@@ -71,9 +70,9 @@ Frees the memory of a [n1][] array.
 void free_2D_array(double **matrix, unsigned n1){
 
   unsigned i;
-  for (i = 0; i < n1; i++) tracked_free(matrix[i]);
+  for (i = 0; i < n1; i++) free(matrix[i]);
    
-  tracked_free(matrix);
+  free(matrix);
 }
 
 /********************************************************************************* 
@@ -83,7 +82,7 @@ Creates a [n1][n2][n3] matrix.
 double ***create_3D_array(unsigned n1, unsigned n2, unsigned n3, int *error, char error_message[SIZE_ErrorM]){
 
   unsigned i;
-  double ***matrix = (double ***) tracked_calloc(n1, sizeof(double **));
+  double ***matrix = (double ***) calloc(n1, sizeof(double **));
   char sub_message[128];
   if (*error == 1) return matrix;
 
@@ -105,7 +104,7 @@ void free_3D_array(double ***matrix, unsigned n1, unsigned n2) {
   unsigned i;
   for (i = 0; i < n1; i++)  free_2D_array(matrix[i], n2);
    
-  tracked_free(matrix);
+  free(matrix);
 }
 
 /********************************************************************************************

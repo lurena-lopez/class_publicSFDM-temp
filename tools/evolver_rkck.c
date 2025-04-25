@@ -171,7 +171,7 @@ int evolver_rk(int (*derivs)(double x,
 	     gi.error_message,
 	     error_message);
 
-  class_free(dy);
+  free(dy);
 
   return _SUCCESS_;
 

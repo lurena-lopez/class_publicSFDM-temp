@@ -195,14 +195,14 @@ int hyperspherical_HIS_create(int K,
           sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
       }
     }
-    class_free(PhiL);
+    free(PhiL);
     return _SUCCESS_;
     );
   }
   class_finish_parallel();
 
-  class_free(sqrtK);
-  class_free(one_over_sqrtK);
+  free(sqrtK);
+  free(one_over_sqrtK);
 
   for (k=0; k<nl; k++){
     hyperspherical_get_xmin_from_approx(K,lvec[k],beta,0.,phiminabs,pHIS->chi_at_phimin+k,NULL);
@@ -238,13 +238,13 @@ int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local,
 int hyperspherical_HIS_free(HyperInterpStruct *pHIS,
                             ErrorMsg error_message){
   /** Free the Hyperspherical Interpolation Structure. */
-  class_free(pHIS->l);
-  class_free(pHIS->chi_at_phimin);
-  class_free(pHIS->x);
-  class_free(pHIS->sinK);
-  class_free(pHIS->cotK);
-  class_free(pHIS->phi);
-  class_free(pHIS->dphi);
+  free(pHIS->l);
+  free(pHIS->chi_at_phimin);
+  free(pHIS->x);
+  free(pHIS->sinK);
+  free(pHIS->cotK);
+  free(pHIS->phi);
+  free(pHIS->dphi);
 
   return _SUCCESS_;
 }

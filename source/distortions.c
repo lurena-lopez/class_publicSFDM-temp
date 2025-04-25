@@ -100,38 +100,38 @@ int distortions_free(struct distortions * psd) {
 
   if (psd->has_distortions == _TRUE_) {
     /** Delete lists */
-    class_free(psd->z);
-    class_free(psd->z_weights);
-    class_free(psd->x);
-    class_free(psd->x_weights);
+    free(psd->z);
+    free(psd->z_weights);
+    free(psd->x);
+    free(psd->x_weights);
 
     /** Delete noise file */
     if (psd->has_detector_file == _TRUE_) {
-      class_free(psd->delta_Ic_array);
+      free(psd->delta_Ic_array);
     }
 
     /** Delete branching ratios */
     for (index_type=0;index_type<psd->type_size;++index_type){
-      class_free(psd->br_table[index_type]);
+      free(psd->br_table[index_type]);
     }
-    class_free(psd->br_table);
+    free(psd->br_table);
 
     /** Delete heating functions */
-    class_free(psd->dQrho_dz_tot);
+    free(psd->dQrho_dz_tot);
 
     /** Delete distortion shapes */
     for (index_type=0;index_type<psd->type_size;++index_type){
-      class_free(psd->sd_shape_table[index_type]);
-      class_free(psd->sd_table[index_type]);
+      free(psd->sd_shape_table[index_type]);
+      free(psd->sd_table[index_type]);
     }
-    class_free(psd->sd_shape_table);
-    class_free(psd->sd_table);
+    free(psd->sd_shape_table);
+    free(psd->sd_table);
 
     /** Delete distortion amplitudes */
-    class_free(psd->sd_parameter_table);
+    free(psd->sd_parameter_table);
 
     /** Delete total distortion */
-    class_free(psd->DI);
+    free(psd->DI);
   }
   psd->is_allocated = _FALSE_;
 
@@ -762,7 +762,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
     class_call(distortions_free_br_data(psd),
                psd->error_message,
                psd->error_message);
-    class_free(f_E);
+    free(f_E);
 
   }
 
@@ -862,7 +862,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
     psd->dQrho_dz_tot[index_z] = heat*a/(H*rho_g);                // [-]
   }
 
-  class_free(pvecback);
+  free(pvecback);
 
   if (psd->include_only_exotic == _FALSE_) {
     /** Update heating table with second order contributions */
@@ -991,7 +991,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     class_call(distortions_free_sd_data(psd),
                psd->error_message,
                psd->error_message);
-    class_free(S);
+    free(S);
   }
 
   /** Compute distortion amplitude for residual parameter epsilon */
@@ -1621,15 +1621,15 @@ int distortions_interpolate_br_data(struct distortions* psd,
 
 int distortions_free_br_data(struct distortions * psd){
 
-  class_free(psd->br_exact_z);
-  class_free(psd->f_g_exact);
-  class_free(psd->ddf_g_exact);
-  class_free(psd->f_y_exact);
-  class_free(psd->ddf_y_exact);
-  class_free(psd->f_mu_exact);
-  class_free(psd->ddf_mu_exact);
-  class_free(psd->E_vec);
-  class_free(psd->ddE_vec);
+  free(psd->br_exact_z);
+  free(psd->f_g_exact);
+  free(psd->ddf_g_exact);
+  free(psd->f_y_exact);
+  free(psd->ddf_y_exact);
+  free(psd->f_mu_exact);
+  free(psd->ddf_mu_exact);
+  free(psd->E_vec);
+  free(psd->ddE_vec);
 
   return _SUCCESS_;
 }
@@ -1861,15 +1861,15 @@ int distortions_interpolate_sd_data(struct distortions* psd,
 
 int distortions_free_sd_data(struct distortions * psd){
 
-  class_free(psd->PCA_nu);
-  class_free(psd->PCA_G_T);
-  class_free(psd->ddPCA_G_T);
-  class_free(psd->PCA_Y_SZ);
-  class_free(psd->ddPCA_Y_SZ);
-  class_free(psd->PCA_M_mu);
-  class_free(psd->ddPCA_M_mu);
-  class_free(psd->S_vec);
-  class_free(psd->ddS_vec);
+  free(psd->PCA_nu);
+  free(psd->PCA_G_T);
+  free(psd->ddPCA_G_T);
+  free(psd->PCA_Y_SZ);
+  free(psd->ddPCA_Y_SZ);
+  free(psd->PCA_M_mu);
+  free(psd->ddPCA_M_mu);
+  free(psd->S_vec);
+  free(psd->ddS_vec);
 
   return _SUCCESS_;
 }

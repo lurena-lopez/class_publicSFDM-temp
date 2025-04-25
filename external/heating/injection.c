@@ -212,42 +212,42 @@ int injection_free(struct thermodynamics* pth){
   int index_inj, index_dep;
 
   /* Redshift */
-  class_free(pin->z_table);
+  free(pin->z_table);
 
   /* Energy injection */
   for(index_inj=0;index_inj<pin->inj_size;++index_inj){
-    class_free(pin->injection_table[index_inj]);
+    free(pin->injection_table[index_inj]);
   }
-  class_free(pin->injection_table);
+  free(pin->injection_table);
 
   if(pin->has_PBH_eva==_TRUE_){
-    class_free(pin->PBH_table_z);
-    class_free(pin->PBH_table_mass);
-    class_free(pin->PBH_table_mass_dd);
-    class_free(pin->PBH_table_F);
-    class_free(pin->PBH_table_F_dd);
+    free(pin->PBH_table_z);
+    free(pin->PBH_table_mass);
+    free(pin->PBH_table_mass_dd);
+    free(pin->PBH_table_F);
+    free(pin->PBH_table_F_dd);
   }
 
   /* Injection efficiency */
   if(pin->f_eff_type == f_eff_from_file){
-    class_free(pin->feff_table);
+    free(pin->feff_table);
   }
   if(pin->chi_type == chi_from_z_file){
-    class_free(pin->chiz_table);
+    free(pin->chiz_table);
   }
   if(pin->chi_type == chi_from_x_file || pin->chi_type == chi_Galli_file){
-    class_free(pin->chix_table);
+    free(pin->chix_table);
   }
 
   /* Deposition function */
-  class_free(pin->chi);
+  free(pin->chi);
 
   /* Energy deposition */
   for(index_dep=0;index_dep<pin->dep_size;++index_dep){
-    class_free(pin->deposition_table[index_dep]);
+    free(pin->deposition_table[index_dep]);
   }
-  class_free(pin->deposition_table);
-  class_free(pin->pvecdeposition);
+  free(pin->deposition_table);
+  free(pin->pvecdeposition);
 
   return _SUCCESS_;
 }
@@ -874,7 +874,7 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
   }
 
   /** - Free local variables */
-  class_free(pvecback_loop);
+  free(pvecback_loop);
 
   /** - Spline mass and F(M) evolution in z */
   class_call(array_spline_table_lines(pin->PBH_table_z,

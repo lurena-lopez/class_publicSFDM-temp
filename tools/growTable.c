@@ -54,7 +54,7 @@ int gt_add(
 
   if (ridx+sz>self->sz) {
     /** - test -> pass -> ok we need to grow */
-    nbuffer=tracked_realloc(self->buffer,self->sz*_GT_FACTOR_);
+    nbuffer=realloc(self->buffer,self->sz*_GT_FACTOR_);
     class_test(nbuffer==NULL,
 	       self->error_message,
 	       "Cannot grow growTable");
@@ -151,7 +151,7 @@ int gt_getPtr(
  * Called by background_solve().
  */
 int gt_free(growTable* self) {
-  class_free(self->buffer);
+  free(self->buffer);
   self->csz=-1;
   self->sz=-1;
   self->freeze=_FALSE_;  /**< This line added by JL */
