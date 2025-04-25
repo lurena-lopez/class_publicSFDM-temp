@@ -790,8 +790,6 @@ int lensing_init(
   class_free(cl_pp);
   /** - Exit **/
 
-  ple->is_allocated = _TRUE_;
-
   return _SUCCESS_;
 
 }
@@ -818,8 +816,6 @@ int lensing_free(
     class_free(ple->l_max_lt);
 
   }
-
-  ple->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 

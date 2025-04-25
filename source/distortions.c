@@ -81,8 +81,6 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  psd->is_allocated = _TRUE_;
-
   return _SUCCESS_;
 }
 
@@ -133,7 +131,6 @@ int distortions_free(struct distortions * psd) {
     /** Delete total distortion */
     class_free(psd->DI);
   }
-  psd->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 }

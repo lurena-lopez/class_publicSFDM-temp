@@ -312,7 +312,6 @@ int harmonic_init(
       pointer. */
 
   phr->pfo = pfo;
-  phr->is_allocated = _TRUE_;
 
   return _SUCCESS_;
 }
@@ -357,7 +356,6 @@ int harmonic_free(
     class_free(phr->ic_ic_size);
 
   }
-  phr->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 
