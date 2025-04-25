@@ -6,7 +6,7 @@ class
 *.ini
 libclass.a
 *out
-python/classy.c
+python/classy.cpp
 *.pyc
 python/build/
 *.dSYM
@@ -19,12 +19,4 @@ python/classy.egg-info/PKG-INFO
 python/classy.egg-info/SOURCES.txt
 python/classy.egg-info/top_level.txt
 python/dist/classy-3.2.2-py3.12-macosx-14.0-arm64.egg
-python/dist/classy-3.2.2-py3.12-macosx-12.0-x86_64.egg
-source/background copy.c
-notebooks/.ipynb_checkpoints/distances-checkpoint.ipynb
-notebooks/.ipynb_checkpoints/many_times-checkpoint.ipynb
-notebooks/.ipynb_checkpoints/warmup-checkpoint.ipynb
-notebooks/many_times.ipynb
-notebooks/many_times.ipynb
-notebooks/warmup.ipynb
-notebooks/warmup.ipynb
+python/.classy.pyx.swp

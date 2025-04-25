@@ -540,6 +540,8 @@ int primordial_init(
 
   }
 
+  ppm->is_allocated = _TRUE_;
+
   return _SUCCESS_;
 
 }
@@ -590,6 +592,8 @@ int primordial_free(
     class_free(ppm->lnk);
 
   }
+
+  ppm->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 }
