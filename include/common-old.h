@@ -8,13 +8,6 @@
 #include "svnversion.h"
 #include <stdarg.h>
 
-#include "alloc_track.h"
-
-// Turn this on if you want to make sure none of the code
-// (outside of cython) is using untracked malloc/free (or
-// related functions
-//#pragma GCC poison free malloc calloc realloc
-
 #ifdef _OPENMP
 #include "omp.h"
 #endif
@@ -178,19 +171,20 @@ extern "C" {
   }                                                                                                              \
 }
 
-/* same inside parallel structure */
+
+/* same inside parallel structure -- UNUSED NOW
 #define class_alloc_parallel(pointer, size, error_message_output)  {                                             \
   pointer=NULL;                                                                                                  \
-  if (abort == _FALSE_) {                                                                                        \
-    pointer=(__typeof__(pointer))tracked_malloc(size);                                                                                        \
+  if (abort_now == _FALSE_) {                                                                                        \
+    pointer=(__typeof__(pointer))malloc(size);                                                                                        \
     if (pointer == NULL) {                                                                                       \
       int size_int;                                                                                              \
       size_int = size;                                                                                           \
       class_alloc_message(error_message_output,#pointer, size_int);                                              \
-      abort=_TRUE_;                                                                                              \
+      abort_now=_TRUE_;                                                                                              \
     }                                                                                                            \
   }                                                                                                              \
-}
+}*/
 
 /* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
 #define class_calloc(pointer, init,size, error_message_output)  {                                                \
@@ -212,11 +206,6 @@ extern "C" {
     class_alloc_message(error_message_output,#pointer, size_int);                                                \
     return _FAILURE_;                                                                                            \
   }                                                                                                              \
-}
-
-/* macro for freeing memory */
-#define class_free(pointer)  {                                                                                   \
-    tracked_free(pointer);                                                                                       \
 }
 
 // Testing
