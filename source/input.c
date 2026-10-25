@@ -1390,7 +1390,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call_except(background_init(&pr,&ba), ba.error_message, errmsg, background_free(&ba);thermodynamics_free_input(&th);perturbations_free_input(&pt););
+    class_call_except(background_init(&pr,&ba), ba.error_message, errmsg, background_free(&ba);thermodynamics_free(&th);perturbations_free(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -1400,14 +1400,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
     th.hyrec_verbose = 0;
-    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba);thermodynamics_free_input(&th);perturbations_free_input(&pt););
+    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba);thermodynamics_free(&th);perturbations_free(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
     if (input_verbose>2)
       printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
-    class_call_except(perturbations_init(&pr,&ba,&th,&pt), pt.error_message, errmsg, thermodynamics_free(&th);background_free(&ba);perturbations_free_input(&pt););
+    class_call_except(perturbations_init(&pr,&ba,&th,&pt), pt.error_message, errmsg, thermodynamics_free(&th);background_free(&ba);perturbations_free(&pt););
   }
 
   if (pfzw->required_computation_stage >= cs_primordial){
